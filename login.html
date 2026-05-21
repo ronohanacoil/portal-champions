@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Champions - התחברות</title>
+    <meta name="description" content="פלטפורמת סוכני AI לעסקים - התחברות">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f7;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #1d1d1f;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 24px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .logo {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 24px;
+            background: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo svg {
+            width: 64px;
+            height: 64px;
+            color: #d4af37;
+        }
+
+        .logo-text {
+            position: absolute;
+            font-size: 7px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: 1px;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #1d1d1f;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #6e6e73;
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 14px 16px 14px 44px;
+            font-family: inherit;
+            font-size: 15px;
+            border: 1.5px solid #e0e0e5;
+            border-radius: 12px;
+            background: #fafafa;
+            transition: all 0.2s;
+            color: #1d1d1f;
+        }
+
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: #000;
+            background: white;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            color: #8e8e93;
+            pointer-events: none;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 16px;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            background: #1d1d1f;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .login-button:hover {
+            background: #000;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .footer {
+            margin-top: 32px;
+            font-size: 13px;
+            color: #6e6e73;
+        }
+
+        .footer .powered {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #a1a1a6;
+        }
+
+        .footer .powered strong {
+            color: #6e6e73;
+            font-weight: 600;
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 36px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L4 6v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V6l-8-4z"/>
+            </svg>
+            <div class="logo-text">CHAMPIONS</div>
+        </div>
+
+        <h1>Portal Champions</h1>
+        <p class="subtitle">התחברות למערכת</p>
+
+        <div class="error-message" id="errorMessage">
+            פרטי ההתחברות שגויים
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">אימייל</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    <input type="email" id="email" placeholder="admin@admin.com" required autocomplete="email">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">סיסמה</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                    <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+            </div>
+
+            <button type="submit" class="login-button" id="submitBtn">
+                <span>התחברות</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12,19 5,12 12,5"/>
+                </svg>
+            </button>
+        </form>
+
+        <div class="footer">
+            Portal Champions
+            <span class="powered">Powered by <strong>Ron Ohana Holdings</strong></span>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ MVP-only authentication. Will be replaced with proper backend auth (Supabase/Next.js) in stage 2.
+        const ADMIN_EMAIL = 'its@ronohana.co.il';
+        const ADMIN_PASSWORD = 'champions2026';
+
+        const form = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+
+            errorMessage.classList.remove('show');
+
+            if (email === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD) {
+                // Success
+                sessionStorage.setItem('pc_authenticated', 'true');
+                sessionStorage.setItem('pc_user_email', email);
+                sessionStorage.setItem('pc_login_time', new Date().toISOString());
+
+                submitBtn.disabled = true;
+                submitBtn.querySelector('span').textContent = 'מתחבר...';
+
+                setTimeout(() => {
+                    window.location.href = '/dashboard.html';
+                }, 400);
+            } else {
+                errorMessage.classList.add('show');
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+            }
+        });
+
+        // If already logged in, redirect to dashboard
+        if (sessionStorage.getItem('pc_authenticated') === 'true') {
+            window.location.href = '/dashboard.html';
+        }
+    </script>
+</body>
+</html>
