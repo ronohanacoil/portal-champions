@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Champions - התחברות</title>
-    <meta name="description" content="פלטפורמת סוכני AI לעסקים - התחברות">
+    <meta name="description" content="Portal Champions - התחברות למערכת">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,81 +15,152 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --bg: #faf9f6;
+            --card-bg: #ffffff;
+            --card-border: #ececea;
+            --text: #1a1a1a;
+            --text-muted: #6b6b6b;
+            --label: #2a2a2a;
+            --input-border: #e5e3dd;
+            --input-focus: #999595;
+            --button-bg: #333333;
+            --button-hover: #1a1a1a;
+            --error-bg: #fdf2f2;
+            --error-text: #b94545;
+            --footer-light: #9b9b9b;
+            --footer-dark: #555555;
+        }
+
         body {
             font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f5f7;
             min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
-            color: #1d1d1f;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Subtle blurred radial gradient blobs */
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(110px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            width: 520px;
+            height: 520px;
+            background: radial-gradient(circle, rgba(232, 218, 188, 0.55), rgba(232, 218, 188, 0) 70%);
+            top: -120px;
+            right: -120px;
+        }
+
+        body::after {
+            width: 620px;
+            height: 620px;
+            background: radial-gradient(circle, rgba(220, 212, 230, 0.45), rgba(220, 212, 230, 0) 70%);
+            bottom: -180px;
+            left: -180px;
         }
 
         .login-card {
-            background: white;
-            border-radius: 24px;
-            padding: 48px 40px;
+            position: relative;
+            z-index: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 22px;
+            padding: 44px;
             width: 100%;
-            max-width: 440px;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-            text-align: center;
+            max-width: 470px;
+            box-shadow:
+                0 10px 40px rgba(20, 20, 20, 0.06),
+                0 2px 8px rgba(20, 20, 20, 0.04);
         }
 
+        /* ============ LOGO ============ */
         .logo {
-            width: 96px;
-            height: 96px;
-            margin: 0 auto 24px;
-            background: #000;
-            border-radius: 50%;
+            width: 74px;
+            height: 74px;
+            margin: 0 auto 22px;
+            background: #1a1a1a;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: white;
             position: relative;
             overflow: hidden;
         }
 
         .logo svg {
-            width: 64px;
-            height: 64px;
-            color: #d4af37;
+            width: 40px;
+            height: 40px;
         }
 
-        .logo-text {
-            position: absolute;
-            font-size: 7px;
-            font-weight: 800;
-            color: white;
-            letter-spacing: 1px;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
+        /* ============ TITLE & SUBTITLE ============ */
         h1 {
+            text-align: center;
             font-size: 28px;
             font-weight: 700;
-            margin-bottom: 8px;
-            color: #1d1d1f;
+            color: var(--text);
+            letter-spacing: -0.4px;
+            line-height: 1.2;
         }
 
         .subtitle {
-            font-size: 15px;
-            color: #6e6e73;
-            margin-bottom: 32px;
+            text-align: center;
+            font-size: 17px;
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-top: 11px;
+            margin-bottom: 40px;
         }
 
-        .form-group {
+        /* ============ ERROR ============ */
+        .error-message {
+            background: var(--error-bg);
+            color: var(--error-text);
+            padding: 13px 16px;
+            border-radius: 11px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
             margin-bottom: 20px;
-            text-align: right;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.35s ease-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        /* ============ FORM ============ */
+        .form-field {
+            margin-bottom: 20px;
         }
 
         label {
             display: block;
             font-size: 14px;
             font-weight: 500;
-            color: #1d1d1f;
-            margin-bottom: 8px;
+            color: var(--label);
+            margin-bottom: 9px;
+            text-align: right;
         }
 
         .input-wrapper {
@@ -98,207 +169,256 @@
 
         .input-wrapper input {
             width: 100%;
-            padding: 14px 16px 14px 44px;
+            height: 64px;
+            padding: 0 52px 0 18px;
             font-family: inherit;
             font-size: 15px;
-            border: 1.5px solid #e0e0e5;
-            border-radius: 12px;
-            background: #fafafa;
-            transition: all 0.2s;
-            color: #1d1d1f;
+            font-weight: 400;
+            color: var(--text);
+            background: white;
+            border: 1px solid var(--input-border);
+            border-radius: 13px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            direction: rtl;
+        }
+
+        .input-wrapper input::placeholder {
+            color: #b6b3ac;
+            font-weight: 400;
         }
 
         .input-wrapper input:focus {
             outline: none;
-            border-color: #000;
-            background: white;
+            border-color: var(--input-focus);
+            box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.035);
         }
 
         .input-icon {
             position: absolute;
-            left: 16px;
+            right: 18px;
             top: 50%;
             transform: translateY(-50%);
             width: 20px;
             height: 20px;
-            color: #8e8e93;
+            color: #9d9a92;
             pointer-events: none;
         }
 
+        /* ============ BUTTON ============ */
         .login-button {
             width: 100%;
-            padding: 16px;
+            height: 60px;
+            margin-top: 24px;
+            background: var(--button-bg);
+            color: white;
             font-family: inherit;
             font-size: 16px;
             font-weight: 600;
-            background: #1d1d1f;
-            color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: 13px;
             cursor: pointer;
-            margin-top: 8px;
-            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
+            transition: all 0.18s ease;
         }
 
-        .login-button:hover {
-            background: #000;
+        .login-button:hover:not(:disabled) {
+            background: var(--button-hover);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
         }
 
-        .login-button:active {
+        .login-button:active:not(:disabled) {
             transform: translateY(0);
         }
 
         .login-button:disabled {
-            opacity: 0.6;
+            opacity: 0.75;
             cursor: not-allowed;
-            transform: none;
         }
 
-        .error-message {
-            background: #fee;
-            border: 1px solid #fcc;
-            color: #c33;
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-size: 14px;
-            margin-bottom: 20px;
-            display: none;
+        .login-button svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* ============ FOOTER ============ */
+        .footer {
+            margin-top: 28px;
             text-align: center;
         }
 
-        .error-message.show {
-            display: block;
-            animation: shake 0.4s;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            75% { transform: translateX(8px); }
-        }
-
-        .footer {
-            margin-top: 32px;
+        .footer-line {
             font-size: 13px;
-            color: #6e6e73;
+            color: var(--footer-light);
+            line-height: 1.7;
         }
 
-        .footer .powered {
-            display: block;
-            margin-top: 4px;
-            font-size: 12px;
-            color: #a1a1a6;
-        }
-
-        .footer .powered strong {
-            color: #6e6e73;
+        .footer-line .brand {
+            color: var(--footer-dark);
             font-weight: 600;
         }
 
-        @media (max-width: 480px) {
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 520px) {
+            body {
+                padding: 20px;
+            }
+
             .login-card {
                 padding: 36px 24px;
+                max-width: calc(100% - 0px);
+                border-radius: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .subtitle {
+                font-size: 16px;
+                margin-bottom: 36px;
+            }
+
+            .input-wrapper input {
+                height: 60px;
+                font-size: 15px;
+            }
+
+            .login-button {
+                height: 56px;
+                font-size: 15px;
             }
         }
     </style>
 </head>
 <body>
     <div class="login-card">
-        <div class="logo">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L4 6v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V6l-8-4z"/>
+        <!-- LOGO -->
+        <div class="logo" aria-label="Portal Champions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                <path d="M4 22h16"/>
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
             </svg>
-            <div class="logo-text">CHAMPIONS</div>
         </div>
 
+        <!-- TITLE -->
         <h1>Portal Champions</h1>
+
+        <!-- SUBTITLE -->
         <p class="subtitle">התחברות למערכת</p>
 
-        <div class="error-message" id="errorMessage">
-            פרטי ההתחברות שגויים
-        </div>
+        <!-- ERROR MESSAGE -->
+        <div class="error-message" id="errorMessage">פרטי ההתחברות אינם תקינים</div>
 
-        <form id="loginForm">
-            <div class="form-group">
+        <!-- FORM -->
+        <form id="loginForm" novalidate>
+            <!-- EMAIL -->
+            <div class="form-field">
                 <label for="email">אימייל</label>
                 <div class="input-wrapper">
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                        <polyline points="22,6 12,13 2,6"/>
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
                     </svg>
-                    <input type="email" id="email" placeholder="admin@admin.com" required autocomplete="email">
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="admin@admin.com"
+                        autocomplete="email"
+                        required
+                    >
                 </div>
             </div>
 
-            <div class="form-group">
+            <!-- PASSWORD -->
+            <div class="form-field">
                 <label for="password">סיסמה</label>
                 <div class="input-wrapper">
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                        <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
-                    <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="••••••••"
+                        autocomplete="current-password"
+                        required
+                    >
                 </div>
             </div>
 
+            <!-- BUTTON -->
             <button type="submit" class="login-button" id="submitBtn">
-                <span>התחברות</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <span id="btnText">התחברות</span>
+                <svg id="btnIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="19" y1="12" x2="5" y2="12"/>
                     <polyline points="12,19 5,12 12,5"/>
                 </svg>
             </button>
         </form>
 
+        <!-- FOOTER -->
         <div class="footer">
-            Portal Champions
-            <span class="powered">Powered by <strong>Ron Ohana Holdings</strong></span>
+            <div class="footer-line">Portal Champions</div>
+            <div class="footer-line">Powered by <span class="brand">Portal Champions</span></div>
         </div>
     </div>
 
     <script>
-        // ⚠️ MVP-only authentication. Will be replaced with proper backend auth (Supabase/Next.js) in stage 2.
+        // ⚠️ MVP-only authentication. Will be replaced with proper backend auth (Supabase) in next stage.
         const ADMIN_EMAIL = 'its@ronohana.co.il';
         const ADMIN_PASSWORD = 'champions2026';
 
         const form = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
         const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const btnIcon = document.getElementById('btnIcon');
+
+        let isSubmitting = false;
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
 
+            if (isSubmitting) return;
+
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
 
+            // Hide previous error
             errorMessage.classList.remove('show');
 
             if (email === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD) {
-                // Success
+                // SUCCESS — show loading state, then redirect
+                isSubmitting = true;
+                submitBtn.disabled = true;
+                btnText.textContent = 'מתחבר...';
+                btnIcon.style.display = 'none';
+
                 sessionStorage.setItem('pc_authenticated', 'true');
                 sessionStorage.setItem('pc_user_email', email);
                 sessionStorage.setItem('pc_login_time', new Date().toISOString());
 
-                submitBtn.disabled = true;
-                submitBtn.querySelector('span').textContent = 'מתחבר...';
-
                 setTimeout(() => {
                     window.location.href = '/dashboard.html';
-                }, 400);
+                }, 550);
             } else {
+                // FAIL — show error, clear password, refocus
                 errorMessage.classList.add('show');
                 document.getElementById('password').value = '';
                 document.getElementById('password').focus();
             }
         });
 
-        // If already logged in, redirect to dashboard
+        // If already logged in, skip straight to dashboard
         if (sessionStorage.getItem('pc_authenticated') === 'true') {
             window.location.href = '/dashboard.html';
         }
