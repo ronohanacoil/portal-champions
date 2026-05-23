@@ -8,11 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --bg: #f5f5f7;
@@ -26,6 +22,9 @@
             --card: #ffffff;
             --bot-bubble: #f0f0f3;
             --user-bubble: #1d1d1f;
+            --success: #2d7a2d;
+            --warning: #b8860b;
+            --error: #c33;
         }
 
         body {
@@ -172,23 +171,9 @@
             flex-shrink: 0;
         }
 
-        .user-info {
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .user-name {
-            font-size: 13px;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .user-role {
-            font-size: 11px;
-            color: var(--sidebar-muted);
-        }
+        .user-info { flex: 1; overflow: hidden; }
+        .user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-role { font-size: 11px; color: var(--sidebar-muted); }
 
         .logout-btn {
             background: transparent;
@@ -202,23 +187,11 @@
             align-items: center;
             justify-content: center;
         }
-
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.08);
-            color: white;
-        }
-
-        .logout-btn svg {
-            width: 16px;
-            height: 16px;
-        }
+        .logout-btn:hover { background: rgba(255,255,255,0.08); color: white; }
+        .logout-btn svg { width: 16px; height: 16px; }
 
         /* ============ MAIN CONTENT ============ */
-        .main {
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        .main { display: flex; flex-direction: column; overflow: hidden; }
 
         .topbar {
             background: var(--card);
@@ -229,52 +202,72 @@
             justify-content: space-between;
         }
 
-        .topbar-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .topbar-title h1 {
-            font-size: 20px;
-            font-weight: 700;
-        }
+        .topbar-title { display: flex; align-items: center; gap: 12px; }
+        .topbar-title h1 { font-size: 20px; font-weight: 700; }
 
         .agent-status {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #f0f9f0;
-            color: #2d7a2d;
             padding: 4px 10px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
         }
+        .agent-status.connected { background: #f0f9f0; color: var(--success); }
+        .agent-status.disconnected { background: #fef5e7; color: var(--warning); }
 
         .status-dot {
             width: 8px;
             height: 8px;
-            background: #2d7a2d;
             border-radius: 50%;
-            animation: pulse 2s infinite;
         }
+        .status-dot.green { background: var(--success); animation: pulse 2s infinite; }
+        .status-dot.yellow { background: var(--warning); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .stage-banner {
+        .connect-banner {
             background: linear-gradient(90deg, #fff8e1, #fffdf2);
             border-bottom: 1px solid #ffe082;
-            padding: 10px 32px;
-            font-size: 13px;
+            padding: 14px 32px;
+            font-size: 14px;
             color: #7a5a00;
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .connect-btn {
+            background: #1d1d1f;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
             gap: 8px;
         }
+        .connect-btn:hover { background: #000; transform: translateY(-1px); }
+
+        .success-banner {
+            background: #f0f9f0;
+            border-bottom: 1px solid #c8e6c9;
+            padding: 12px 32px;
+            font-size: 14px;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .close-btn { background: transparent; border: none; cursor: pointer; color: inherit; font-size: 18px; opacity: 0.6; }
+        .close-btn:hover { opacity: 1; }
 
         .chat-container {
             flex: 1;
@@ -294,12 +287,14 @@
         }
 
         .message {
-            max-width: 70%;
+            max-width: 75%;
             padding: 14px 18px;
             border-radius: 18px;
             font-size: 15px;
             line-height: 1.6;
-            animation: slideIn 0.3s ease-out;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            animation: slideIn 0.25s ease-out;
         }
 
         @keyframes slideIn {
@@ -321,22 +316,46 @@
             border-bottom-left-radius: 6px;
         }
 
-        .message strong {
-            font-weight: 700;
+        .message.error {
+            background: #fee;
+            color: var(--error);
+            align-self: flex-start;
+            border: 1px solid #fcc;
         }
 
-        .message em {
-            color: var(--muted);
-            font-style: italic;
+        .message strong { font-weight: 700; }
+        .message em { color: var(--muted); font-style: italic; }
+        .message ul, .message ol { margin: 8px 0; padding-right: 24px; }
+        .message li { margin: 4px 0; }
+        .message code {
+            background: rgba(0,0,0,0.06);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
         }
 
-        .message-list {
-            margin: 8px 0;
-            padding-right: 16px;
+        .typing-indicator {
+            display: inline-flex;
+            gap: 4px;
+            padding: 14px 18px;
+            background: var(--bot-bubble);
+            border-radius: 18px;
+            border-bottom-right-radius: 6px;
+            align-self: flex-start;
         }
-
-        .message-list li {
-            margin: 4px 0;
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+            30% { opacity: 1; transform: translateY(-4px); }
         }
 
         .input-area {
@@ -345,7 +364,7 @@
             padding: 20px 32px;
             display: flex;
             gap: 12px;
-            align-items: center;
+            align-items: flex-end;
         }
 
         .chat-input {
@@ -357,6 +376,10 @@
             font-size: 15px;
             background: #fafafa;
             transition: all 0.2s;
+            resize: none;
+            max-height: 160px;
+            min-height: 50px;
+            line-height: 1.5;
         }
 
         .chat-input:focus {
@@ -374,8 +397,8 @@
             background: var(--text);
             color: white;
             border: none;
-            width: 48px;
-            height: 48px;
+            width: 50px;
+            height: 50px;
             border-radius: 14px;
             cursor: pointer;
             display: flex;
@@ -395,19 +418,12 @@
             cursor: not-allowed;
         }
 
-        .send-btn svg {
-            width: 20px;
-            height: 20px;
-        }
+        .send-btn svg { width: 20px; height: 20px; }
 
         @media (max-width: 768px) {
-            .layout {
-                grid-template-columns: 1fr;
-            }
-            .sidebar {
-                display: none;
-            }
-            .messages, .topbar, .input-area, .stage-banner {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .messages, .topbar, .input-area, .connect-banner, .success-banner {
                 padding-left: 20px;
                 padding-right: 20px;
             }
@@ -500,41 +516,55 @@
                 <div class="topbar-title">
                     <h1>סוכן החשבונאות</h1>
                 </div>
-                <div class="agent-status">
-                    <span class="status-dot"></span>
-                    <span>פעיל</span>
+                <div class="agent-status" id="agentStatus">
+                    <span class="status-dot yellow"></span>
+                    <span>בודק חיבור...</span>
                 </div>
             </header>
 
-            <div class="stage-banner">
-                🚧 <strong>שלב 1 מתוך 3</strong> · מסך כניסה ודאשבורד מוכנים. השלב הבא: חיבור לסוכן ולקבצים בדרייב.
+            <!-- Connect to Drive banner (shown if not connected) -->
+            <div class="connect-banner" id="connectBanner" style="display:none">
+                <div>
+                    <strong>🔗 חיבור ל-Google Drive נדרש</strong><br>
+                    <span style="font-size:13px">כדי שהסוכן יוכל לקרוא חשבוניות ולעדכן את האקסל, צריך לחבר את הדרייב פעם אחת.</span>
+                </div>
+                <a class="connect-btn" href="/api/google/connect">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9.871 4.508l-3.732 6.464H1L4.732 4.508h5.139zM15.018 4.508l5.232 9.06L17.518 18.31l-5.232-9.06 2.732-4.742zM12.5 11.952l3.732 6.464H8.5l3.732-6.464h.268z"/>
+                    </svg>
+                    התחבר ל-Drive
+                </a>
+            </div>
+
+            <!-- Success banner after connection -->
+            <div class="success-banner" id="successBanner" style="display:none">
+                <div>✅ <strong>החיבור ל-Google Drive הצליח!</strong> הסוכן יכול עכשיו לגשת לקבצים שלך.</div>
+                <button class="close-btn" id="closeSuccessBtn">×</button>
             </div>
 
             <div class="chat-container">
                 <div class="messages" id="messages">
                     <div class="message bot">
                         <strong>שלום רון! 👋</strong><br><br>
-                        אני <strong>סוכן החשבונאות</strong> שלך. ברגע שאסיים את ההתחברות למערכת אוכל לעזור לך עם:
-                        <ul class="message-list">
+                        אני <strong>סוכן החשבונאות</strong> שלך. אחרי שתחבר את ה-Drive, אוכל לעזור לך עם:
+                        <ul>
                             <li>📄 עיבוד חשבוניות מ-PDF</li>
                             <li>📊 עדכון אוטומטי של גיליון האקסל</li>
                             <li>✅ סגירת חודשים והוספת סימוני ✅</li>
-                            <li>🔄 משיכת חשבוניות מ-iCount</li>
                             <li>📈 דוחות חודשיים ושנתיים</li>
                         </ul>
-                        <em>בשלב זה אני עוד מוצג כדמו - בשלב הבא נחבר אותי ל-Claude API ולגוגל דרייב.</em>
+                        <em>נסה לכתוב לי משהו כמו "עבד את חודש יוני" כדי להתחיל.</em>
                     </div>
                 </div>
 
                 <div class="input-area">
-                    <input
-                        type="text"
+                    <textarea
                         class="chat-input"
                         id="chatInput"
-                        placeholder="הצ'אט יהיה פעיל בשלב הבא של הפיתוח..."
-                        disabled
-                    >
-                    <button class="send-btn" id="sendBtn" disabled>
+                        placeholder="כתוב הודעה לסוכן..."
+                        rows="1"
+                    ></textarea>
+                    <button class="send-btn" id="sendBtn" title="שלח (Enter)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="22" y1="2" x2="11" y2="13"/>
                             <polygon points="22,2 15,22 11,13 2,9 22,2"/>
@@ -546,26 +576,166 @@
     </div>
 
     <script>
-        // Auth guard
+        // ============ AUTH GUARD ============
         if (sessionStorage.getItem('pc_authenticated') !== 'true') {
             window.location.href = '/login.html';
         }
 
-        // Set user info
+        // ============ USER INFO ============
         const userEmail = sessionStorage.getItem('pc_user_email') || '';
         if (userEmail) {
-            const userName = userEmail.split('@')[0];
-            const initial = userName.charAt(0).toUpperCase();
+            const initial = userEmail.charAt(0).toUpperCase();
             document.getElementById('userAvatar').textContent = initial;
         }
 
-        // Logout
+        // ============ LOGOUT ============
         document.getElementById('logoutBtn').addEventListener('click', () => {
             if (confirm('האם להתנתק?')) {
                 sessionStorage.clear();
                 window.location.href = '/login.html';
             }
         });
+
+        // ============ DRIVE CONNECTION STATUS ============
+        async function checkDriveStatus() {
+            try {
+                const res = await fetch('/api/google/status');
+                const data = await res.json();
+                const statusEl = document.getElementById('agentStatus');
+                const banner = document.getElementById('connectBanner');
+
+                if (data.connected) {
+                    statusEl.className = 'agent-status connected';
+                    statusEl.innerHTML = '<span class="status-dot green"></span><span>מחובר ל-Drive</span>';
+                    banner.style.display = 'none';
+                } else {
+                    statusEl.className = 'agent-status disconnected';
+                    statusEl.innerHTML = '<span class="status-dot yellow"></span><span>לא מחובר ל-Drive</span>';
+                    banner.style.display = 'flex';
+                }
+            } catch (err) {
+                console.error('Status check failed:', err);
+            }
+        }
+
+        // ============ SUCCESS BANNER ============
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('connected') === 'true') {
+            document.getElementById('successBanner').style.display = 'flex';
+            // Clean URL
+            window.history.replaceState({}, '', '/dashboard.html');
+        }
+        document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+            document.getElementById('successBanner').style.display = 'none';
+        });
+
+        // ============ CHAT ============
+        const messagesEl = document.getElementById('messages');
+        const inputEl = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // Conversation history (for context)
+        let conversation = [];
+        let isWaiting = false;
+
+        function addMessage(role, content, isError = false) {
+            const div = document.createElement('div');
+            div.className = `message ${role}${isError ? ' error' : ''}`;
+            // Basic markdown-like formatting
+            const formatted = content
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/`(.+?)`/g, '<code>$1</code>');
+            div.innerHTML = formatted;
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function showTyping() {
+            const div = document.createElement('div');
+            div.className = 'typing-indicator';
+            div.id = 'typingIndicator';
+            div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function hideTyping() {
+            const el = document.getElementById('typingIndicator');
+            if (el) el.remove();
+        }
+
+        async function sendMessage() {
+            const text = inputEl.value.trim();
+            if (!text || isWaiting) return;
+
+            // Add user message
+            addMessage('user', text);
+            conversation.push({ role: 'user', content: text });
+            inputEl.value = '';
+            inputEl.style.height = 'auto';
+
+            isWaiting = true;
+            sendBtn.disabled = true;
+            inputEl.disabled = true;
+            showTyping();
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: conversation }),
+                });
+
+                hideTyping();
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ error: 'שגיאת שרת' }));
+                    addMessage('bot', `שגיאה: ${err.error || 'לא ידוע'}`, true);
+                    isWaiting = false;
+                    sendBtn.disabled = false;
+                    inputEl.disabled = false;
+                    inputEl.focus();
+                    return;
+                }
+
+                const data = await res.json();
+                addMessage('bot', data.message || '(אין תוכן)');
+
+                // Update conversation from server (includes tool calls etc.)
+                if (data.conversation) {
+                    conversation = data.conversation;
+                }
+            } catch (err) {
+                hideTyping();
+                addMessage('bot', `שגיאת חיבור: ${err.message}`, true);
+            }
+
+            isWaiting = false;
+            sendBtn.disabled = false;
+            inputEl.disabled = false;
+            inputEl.focus();
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-resize textarea
+        inputEl.addEventListener('input', () => {
+            inputEl.style.height = 'auto';
+            inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
+        });
+
+        // ============ INIT ============
+        checkDriveStatus();
+        setInterval(checkDriveStatus, 30000); // Re-check every 30s
+        inputEl.focus();
     </script>
 </body>
 </html>
