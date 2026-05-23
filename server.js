@@ -264,6 +264,53 @@ const AGENT_TOOLS = [
         },
     },
     {
+        name: 'create_folder',
+        description:
+            'Create a new folder in Google Drive. Optionally nested inside a parent folder. Returns the new folder ID. Use this when setting up a new year structure (folder 2027 with monthly subfolders inside).',
+        input_schema: {
+            type: 'object',
+            properties: {
+                folder_name: { type: 'string', description: 'Name of the new folder, e.g. "2027" or "06 יוני"' },
+                parent_folder_id: {
+                    type: 'string',
+                    description: 'Optional. ID of the parent folder. If omitted, the folder is created at the root of Drive.',
+                },
+            },
+            required: ['folder_name'],
+        },
+    },
+    {
+        name: 'copy_drive_file',
+        description:
+            'Copy an existing file in Google Drive to create a duplicate. Useful for creating a new year\'s Excel from last year\'s template. Returns the new file ID.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                source_file_id: { type: 'string' },
+                new_name: { type: 'string', description: 'Name for the copied file' },
+                parent_folder_id: {
+                    type: 'string',
+                    description: 'Optional. The folder ID where the copy should be placed.',
+                },
+            },
+            required: ['source_file_id', 'new_name'],
+        },
+    },
+    {
+        name: 'reset_yearly_xlsx',
+        description:
+            'Specialized year-end-setup tool: takes an xlsx file (a copy of last year\'s accounting workbook), clears all invoice data (B-E columns rows 7-58), removes ✅ from sheet names, updates the title from old_year to new_year, and resets all hardcoded numbers in the income/VAT area to empty (formulas are kept and will compute as 0 until data is added). Use this AFTER copying last year\'s xlsx with copy_drive_file.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                file_id: { type: 'string' },
+                old_year: { type: 'string', description: 'e.g. "2026"' },
+                new_year: { type: 'string', description: 'e.g. "2027"' },
+            },
+            required: ['file_id', 'old_year', 'new_year'],
+        },
+    },
+    {
         name: 'ask_user',
         description:
             'Ask the user a question and wait for their response. Use this when you need clarification or approval before doing a destructive action.',
@@ -389,6 +436,114 @@ async function executeToolCall(toolName, input) {
             case 'rename_file': {
                 const result = await renameFile(input.file_id, input.new_name);
                 return { success: true, new_name: result.name };
+            }
+
+            case 'create_folder': {
+                const drive = getDrive();
+                const requestBody = {
+                    name: input.folder_name,
+                    mimeType: 'application/vnd.google-apps.folder',
+                };
+                if (input.parent_folder_id) {
+                    requestBody.parents = [input.parent_folder_id];
+                }
+                const res = await drive.files.create({
+                    requestBody,
+                    fields: 'id, name, parents',
+                });
+                return {
+                    success: true,
+                    folder_id: res.data.id,
+                    name: res.data.name,
+                };
+            }
+
+            case 'copy_drive_file': {
+                const drive = getDrive();
+                const requestBody = { name: input.new_name };
+                if (input.parent_folder_id) {
+                    requestBody.parents = [input.parent_folder_id];
+                }
+                const res = await drive.files.copy({
+                    fileId: input.source_file_id,
+                    requestBody,
+                    fields: 'id, name',
+                });
+                return {
+                    success: true,
+                    file_id: res.data.id,
+                    name: res.data.name,
+                };
+            }
+
+            case 'reset_yearly_xlsx': {
+                // Use ExcelJS to better preserve formatting than SheetJS
+                const ExcelJS = require('exceljs');
+                const buffer = await downloadFile(input.file_id);
+                const wb = new ExcelJS.Workbook();
+                await wb.xlsx.load(buffer);
+
+                const sheetsBefore = wb.worksheets.map((s) => s.name);
+                const sheetsAfter = [];
+
+                for (const sheet of wb.worksheets) {
+                    // Remove ✅ from sheet name
+                    const cleanName = sheet.name.replace(/✅/g, '').trim();
+                    if (cleanName !== sheet.name) {
+                        sheet.name = cleanName;
+                    }
+
+                    // Update C2 title: old_year -> new_year
+                    const c2 = sheet.getCell('C2');
+                    if (c2.value && typeof c2.value === 'string' && c2.value.includes(input.old_year)) {
+                        c2.value = c2.value.replace(input.old_year, input.new_year);
+                    }
+
+                    // Clear invoice data: B-E columns, rows 7-58
+                    for (let r = 7; r <= 58; r++) {
+                        sheet.getCell(`B${r}`).value = null;
+                        sheet.getCell(`C${r}`).value = null;
+                        // Column D: restore template formula =E{r}/1.18
+                        sheet.getCell(`D${r}`).value = { formula: `E${r}/1.18`, result: 0 };
+                        sheet.getCell(`E${r}`).value = null;
+                    }
+
+                    // Clear hardcoded numbers in columns F-K (keep formulas + labels)
+                    for (let r = 1; r <= sheet.rowCount; r++) {
+                        for (let c = 6; c <= 11; c++) {
+                            const cell = sheet.getCell(r, c);
+                            const v = cell.value;
+                            if (v === null || v === undefined) continue;
+                            // Skip formulas (objects with .formula property)
+                            if (typeof v === 'object' && (v.formula || v.sharedFormula)) continue;
+                            // Skip labels (strings)
+                            if (typeof v === 'string') continue;
+                            // Clear hardcoded numbers
+                            if (typeof v === 'number') {
+                                cell.value = null;
+                            }
+                        }
+                    }
+
+                    sheetsAfter.push(sheet.name);
+                }
+
+                // Save back to Drive
+                const newBuffer = await wb.xlsx.writeBuffer();
+                await uploadFile(
+                    input.file_id,
+                    Buffer.from(newBuffer),
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                );
+
+                return {
+                    success: true,
+                    old_year: input.old_year,
+                    new_year: input.new_year,
+                    sheets_count: sheetsAfter.length,
+                    sheets_before: sheetsBefore,
+                    sheets_after: sheetsAfter,
+                };
             }
 
             case 'ask_user': {
