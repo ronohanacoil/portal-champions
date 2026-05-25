@@ -448,12 +448,20 @@
 
             <div class="nav-section-label">סוכנים</div>
 
-            <a class="nav-item active">
+            <a class="nav-item active" data-agent="accounting">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
                     <path d="M9 9h6M9 13h6M9 17h4"/>
                 </svg>
                 <span>סוכן החשבונאות</span>
+            </a>
+
+            <a class="nav-item" data-agent="claude">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zM7.5 12.5l3 3 6-6"/>
+                </svg>
+                <span>קלוד</span>
+                <span class="badge" style="background: rgba(59,130,246,0.2); color: #93c5fd;">NEW</span>
             </a>
 
             <a class="nav-item disabled">
@@ -684,7 +692,10 @@
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messages: conversation }),
+                    body: JSON.stringify({
+                        messages: conversation,
+                        agent_type: currentAgent,
+                    }),
                 });
 
                 hideTyping();
@@ -730,6 +741,76 @@
         inputEl.addEventListener('input', () => {
             inputEl.style.height = 'auto';
             inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
+        });
+
+        // ============ AGENT SWITCHING ============
+        const AGENTS = {
+            accounting: {
+                title: 'סוכן החשבונאות',
+                welcome: `<strong>שלום רון! 👋</strong><br><br>
+                    אני <strong>סוכן החשבונאות</strong> שלך. אני יכול לעזור לך עם:
+                    <ul>
+                        <li>📄 עיבוד חשבוניות מ-PDF</li>
+                        <li>📊 עדכון אוטומטי של גיליון האקסל</li>
+                        <li>✅ סגירת חודשים והוספת סימוני ✅</li>
+                        <li>📈 דוחות חודשיים ושנתיים</li>
+                    </ul>
+                    <em>נסה לכתוב לי משהו כמו "עבד את חודש יוני" כדי להתחיל.</em>`,
+                placeholder: 'כתוב הודעה לסוכן החשבונאות...',
+            },
+            claude: {
+                title: 'קלוד',
+                welcome: `<strong>היי רון! 🤖</strong><br><br>
+                    אני <strong>קלוד</strong> — סוכן AI כללי לכל מה שאתה צריך.<br><br>
+                    בשונה מסוכן החשבונאות, אני לא מתמחה במשהו ספציפי — <strong>אתה יכול לבקש ממני כל דבר</strong>:
+                    <ul>
+                        <li>💡 רעיונות לעסק או לפיתוח מוצר</li>
+                        <li>✍️ כתיבת טקסטים, מיילים, פוסטים</li>
+                        <li>🧠 ניתוח בעיות וסיעור מוחות</li>
+                        <li>📊 ניתוח נתונים והסברים</li>
+                        <li>💻 קוד, פתרון באגים, סקריפטים</li>
+                        <li>🎯 תכנון אסטרטגי</li>
+                        <li>❓ שאלות כלליות על כל נושא</li>
+                    </ul>
+                    <em>שאל אותי כל דבר — אני כאן כדי לעזור.</em>`,
+                placeholder: 'דבר איתי על כל דבר...',
+            },
+        };
+
+        let currentAgent = 'accounting';
+
+        function switchAgent(agentName) {
+            if (!AGENTS[agentName] || isWaiting) return;
+            currentAgent = agentName;
+
+            // Update sidebar active state
+            document.querySelectorAll('.nav-item[data-agent]').forEach(el => {
+                el.classList.toggle('active', el.dataset.agent === agentName);
+            });
+
+            // Update topbar title
+            document.querySelector('.topbar-title h1').textContent = AGENTS[agentName].title;
+
+            // Clear chat & show new welcome
+            conversation = [];
+            messagesEl.innerHTML = '';
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'message bot';
+            welcomeDiv.innerHTML = AGENTS[agentName].welcome;
+            messagesEl.appendChild(welcomeDiv);
+
+            // Update input placeholder
+            inputEl.placeholder = AGENTS[agentName].placeholder;
+            inputEl.focus();
+        }
+
+        // Bind sidebar agent buttons
+        document.querySelectorAll('.nav-item[data-agent]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchAgent(el.dataset.agent);
+            });
+            el.style.cursor = 'pointer';
         });
 
         // ============ INIT ============

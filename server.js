@@ -666,15 +666,32 @@ app.get('/api/google/status', (req, res) => {
 });
 
 // ----- Chat Endpoint -----
+// General-purpose Claude system prompt (for "Claude" agent - no accounting specifics)
+const GENERAL_CLAUDE_PROMPT = `You are Claude, a general-purpose AI assistant for Ron Ohana.
+
+You are NOT specialized in accounting - you are a general assistant who can help with anything: writing, brainstorming, coding, analysis, strategy, explanations, creative work, problem-solving, and casual conversation.
+
+You have access to Google Drive tools (find_folder, list_folder_contents, read_pdf_invoice, read_xlsx, write_xlsx_row, rename_file, create_folder, copy_drive_file, reset_yearly_xlsx) and can use them when relevant - but you should only use them if the user explicitly asks for something Drive-related.
+
+Hebrew is the primary working language (Ron speaks Hebrew), but you can respond in any language.
+
+Be warm, helpful, accurate, and concise. Treat Ron like a smart business partner - explain things at the right level, push back when you disagree, ask clarifying questions when needed.`;
+
 app.post('/api/chat', async (req, res) => {
-    const { messages } = req.body;
+    const { messages, agent_type } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ error: 'messages array is required' });
     }
 
     try {
-        const systemPrompt = await loadSystemPrompt();
+        // Pick system prompt based on agent
+        let systemPrompt;
+        if (agent_type === 'claude') {
+            systemPrompt = GENERAL_CLAUDE_PROMPT;
+        } else {
+            systemPrompt = await loadSystemPrompt();  // accounting from Drive
+        }
 
         // Run agent loop
         let conversation = [...messages];
