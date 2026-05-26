@@ -868,17 +868,6 @@
                 <span class="badge">בקרוב</span>
             </a>
 
-            <a class="nav-item disabled">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-                    <line x1="12" y1="12" x2="12" y2="16"/>
-                    <line x1="10" y1="14" x2="14" y2="14"/>
-                </svg>
-                <span>סוכן תפעול</span>
-                <span class="badge">בקרוב</span>
-            </a>
-
             <div class="nav-section-label">ניהול</div>
 
             <a class="nav-item disabled">
@@ -1444,6 +1433,20 @@
             }
         }
 
+        function describeError(err) {
+            if (!err) return 'שגיאה לא ידועה';
+            if (typeof err === 'string') return err;
+            if (err.message) return err.message;
+            if (err.name) return err.name;
+            try { return JSON.stringify(err); } catch { return String(err); }
+        }
+
+        function isAbort(err) {
+            return err === 'user-stop' ||
+                   err?.name === 'AbortError' ||
+                   (typeof err === 'string' && err.toLowerCase().includes('abort'));
+        }
+
         async function sendClassic() {
             currentAbortController = new AbortController();
             showWorking('חושב');
@@ -1457,8 +1460,9 @@
                 });
                 hideWorking();
                 if (!res.ok) {
-                    const err = await res.json().catch(() => ({ error: 'שגיאת שרת' }));
-                    addMessage('bot', `שגיאה: ${err.error || 'לא ידוע'}`, true);
+                    const errBody = await res.json().catch(() => null);
+                    const errText = errBody?.error || `HTTP ${res.status} ${res.statusText}`;
+                    addMessage('bot', `שגיאה מהשרת: ${errText}\n\nכדאי לנסות **שיחה חדשה** מהכפתור למעלה (לפעמים השיחה הופכת ארוכה מדי).`, true);
                     return;
                 }
                 const data = await res.json();
@@ -1466,10 +1470,11 @@
                 if (data.conversation) conversation = data.conversation;
             } catch (err) {
                 hideWorking();
-                if (err.name === 'AbortError') {
+                if (isAbort(err)) {
                     addMessage('bot', '_עצרת את הפעולה._', true);
                 } else {
-                    addMessage('bot', `שגיאת חיבור: ${err.message}`, true);
+                    const msg = describeError(err);
+                    addMessage('bot', `שגיאת חיבור: ${msg}\n\nאם זה חוזר - לחץ **שיחה חדשה** למעלה. אולי השיחה ארוכה מדי וצריך להתחיל מחדש.`, true);
                 }
             } finally {
                 currentAbortController = null;

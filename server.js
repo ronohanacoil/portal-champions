@@ -1011,6 +1011,41 @@ function getToolsForAgent(agentType) {
     return AGENT_TOOLS;
 }
 
+// ============================================================
+// CONVERSATION SIZE PROTECTION
+// ============================================================
+// Anthropic charges per token, and big images in old messages tank latency.
+// Strategy: keep at most MAX_HISTORY messages, and replace images that are NOT
+// in the most recent user message with a tiny text placeholder.
+const MAX_HISTORY = 16;
+
+function prepareConversationForApi(messages) {
+    if (!Array.isArray(messages) || messages.length === 0) return [];
+    // Tail-limit
+    let trimmed = messages.slice(-MAX_HISTORY);
+
+    // Find the index of the most recent user message in the trimmed array
+    let lastUserIdx = -1;
+    for (let i = trimmed.length - 1; i >= 0; i--) {
+        if (trimmed[i].role === 'user') { lastUserIdx = i; break; }
+    }
+
+    return trimmed.map((msg, idx) => {
+        if (!Array.isArray(msg.content)) return msg;
+        const isLastUser = (msg.role === 'user' && idx === lastUserIdx);
+        const newContent = msg.content.map((block) => {
+            if (block && block.type === 'image' && !isLastUser) {
+                return {
+                    type: 'text',
+                    text: '[תמונה שהמשתמש שלח קודם בשיחה — לא מצורפת שוב כדי לחסוך טוקנים]',
+                };
+            }
+            return block;
+        });
+        return { ...msg, content: newContent };
+    });
+}
+
 // Pick the right system prompt
 async function getSystemPromptForAgent(agentType) {
     if (agentType === 'claude') return GENERAL_CLAUDE_PROMPT;
@@ -1028,8 +1063,8 @@ app.post('/api/chat', async (req, res) => {
         const systemPrompt = await getSystemPromptForAgent(agent_type);
         const tools = getToolsForAgent(agent_type);
 
-        // Run agent loop
-        let conversation = [...messages];
+        // Run agent loop - trim conversation to keep API calls fast
+        let conversation = prepareConversationForApi(messages);
         let iterations = 0;
         const MAX_ITERATIONS = agent_type === 'claude' ? 20 : 10;
 
@@ -1152,7 +1187,7 @@ app.post('/api/chat/stream', async (req, res) => {
         const systemPrompt = await getSystemPromptForAgent(agent_type);
         const tools = getToolsForAgent(agent_type);
 
-        let conversation = [...messages];
+        let conversation = prepareConversationForApi(messages);
         let iterations = 0;
         const MAX_ITERATIONS = agent_type === 'claude' ? 20 : 10;
 
