@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>סוכן פיננסי - Portal Champions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            /* Premium light SaaS theme - financial control room feel */
+            --bg: #f7f8fa;
+            --bg-card: #ffffff;
+            --bg-hover: #f0f2f5;
+            --sidebar-bg: #ffffff;
+            --sidebar-active: #eef2ff;
+            --text: #0f172a;
+            --text-soft: #475569;
+            --muted: #94a3b8;
+            --border: #e5e7eb;
+            --border-strong: #cbd5e1;
+            --accent: #3b82f6;
+            --accent-soft: #dbeafe;
+            --success: #10b981;
+            --success-soft: #d1fae5;
+            --warning: #f59e0b;
+            --warning-soft: #fef3c7;
+            --error: #ef4444;
+            --error-soft: #fee2e2;
+            --info: #6366f1;
+            --info-soft: #e0e7ff;
+        }
+
+        body {
+            font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            font-size: 14px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            height: 100vh;
+        }
+
+        /* ============ SIDEBAR ============ */
+        .sidebar {
+            background: var(--sidebar-bg);
+            border-left: 1px solid var(--border);
+            padding: 16px 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 8px 16px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+        .back-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-soft);
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .back-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+        .back-btn svg { width: 14px; height: 14px; }
+        .sidebar-title { font-size: 14px; font-weight: 700; color: var(--text); }
+        .sidebar-subtitle { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+        .nav-group-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            font-weight: 600;
+            padding: 12px 12px 6px;
+        }
+
+        .nav-tab {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-soft);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.12s;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            text-align: right;
+            width: 100%;
+        }
+        .nav-tab:hover { background: var(--bg-hover); color: var(--text); }
+        .nav-tab.active { background: var(--sidebar-active); color: var(--accent); font-weight: 600; }
+        .nav-tab .nav-icon { font-size: 15px; line-height: 1; flex-shrink: 0; width: 18px; text-align: center; }
+        .nav-tab .nav-badge {
+            margin-right: auto;
+            background: var(--accent);
+            color: white;
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        /* ============ MAIN ============ */
+        .main {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg);
+        }
+        .topbar {
+            background: var(--bg-card);
+            padding: 14px 28px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .topbar-title h1 { font-size: 18px; font-weight: 700; color: var(--text); }
+        .topbar-title p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .topbar-actions { display: flex; gap: 8px; align-items: center; }
+        .btn {
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .btn:hover { background: var(--bg-hover); }
+        .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+        .btn.primary:hover { background: #2563eb; }
+        .btn.success { background: var(--success); color: white; border-color: var(--success); }
+        .btn.danger { background: var(--error); color: white; border-color: var(--error); }
+        .btn.sm { padding: 5px 10px; font-size: 11px; }
+        .btn.xs { padding: 3px 7px; font-size: 10px; }
+        .btn svg { width: 13px; height: 13px; }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 28px;
+        }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+        /* ============ CARDS ============ */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+        }
+        .card-h {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+        .card-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+        .grid {
+            display: grid;
+            gap: 14px;
+        }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-cols-5 { grid-template-columns: repeat(5, 1fr); }
+        @media (max-width: 1280px) { .grid-cols-5 { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 1024px) { .grid-cols-4, .grid-cols-5 { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 768px) {
+            .grid-cols-3, .grid-cols-4, .grid-cols-5 { grid-template-columns: repeat(2, 1fr); }
+            .grid-cols-2 { grid-template-columns: 1fr; }
+        }
+
+        /* KPI cards */
+        .kpi {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .kpi-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 8px; }
+        .kpi-value { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+        .kpi-trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 5px;
+        }
+        .kpi-trend.up { background: var(--success-soft); color: var(--success); }
+        .kpi-trend.down { background: var(--error-soft); color: var(--error); }
+        .kpi-trend.flat { background: var(--bg-hover); color: var(--muted); }
+        .kpi-meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+        /* AI insight card */
+        .ai-banner {
+            background: linear-gradient(135deg, #eef2ff 0%, #ffffff 50%, #eef9ff 100%);
+            border: 1px solid var(--info-soft);
+            border-radius: 14px;
+            padding: 18px 22px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .ai-banner::before {
+            content: '✨';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            font-size: 80px;
+            opacity: 0.05;
+        }
+        .ai-banner-h {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--info);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .ai-banner-h::before { content: '🤖'; font-size: 14px; }
+        .ai-insight { font-size: 13.5px; line-height: 1.7; color: var(--text); margin-bottom: 6px; }
+        .ai-insight + .ai-insight { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+        .ai-insight strong { color: var(--accent); font-weight: 700; }
+
+        /* Tables */
+        .table-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .table-toolbar {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .table-toolbar h3 { font-size: 14px; font-weight: 700; }
+        .filter-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-input, .filter-select {
+            padding: 6px 10px;
+            font-size: 12px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: var(--bg-card);
+            color: var(--text);
+            font-family: inherit;
+            min-width: 120px;
+        }
+        .filter-input:focus, .filter-select:focus { outline: none; border-color: var(--accent); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+        }
+        thead { background: #fafbfc; }
+        th, td {
+            text-align: right;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            font-weight: 600;
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        td { color: var(--text); }
+        tbody tr:hover { background: #fafbfc; }
+        td.num { font-variant-numeric: tabular-nums; font-weight: 500; }
+        td.num.neg { color: var(--error); }
+        td.num.pos { color: var(--success); }
+
+        /* Status pills */
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .pill.success { background: var(--success-soft); color: var(--success); }
+        .pill.warning { background: var(--warning-soft); color: var(--warning); }
+        .pill.error { background: var(--error-soft); color: var(--error); }
+        .pill.info { background: var(--info-soft); color: var(--info); }
+        .pill.neutral { background: var(--bg-hover); color: var(--text-soft); }
+        .pill.accent { background: var(--accent-soft); color: var(--accent); }
+
+        .action-icons {
+            display: inline-flex;
+            gap: 4px;
+        }
+        .icon-action {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px 6px;
+            cursor: pointer;
+            font-size: 11px;
+            color: var(--text-soft);
+            transition: all 0.15s;
+        }
+        .icon-action:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Bar chart (simple CSS) */
+        .bar-chart { display: flex; flex-direction: column; gap: 8px; }
+        .bar-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+        .bar-label { min-width: 130px; color: var(--text-soft); }
+        .bar-track { flex: 1; height: 8px; background: var(--bg-hover); border-radius: 4px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+        .bar-value { min-width: 90px; text-align: left; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+        /* Vertical bars chart */
+        .vbar-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 160px;
+            padding: 8px 0;
+        }
+        .vbar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .vbar-group { width: 100%; display: flex; gap: 3px; align-items: flex-end; height: 100%; }
+        .vbar { flex: 1; border-radius: 4px 4px 0 0; min-height: 4px; transition: all 0.3s; }
+        .vbar.income { background: var(--success); }
+        .vbar.expense { background: var(--accent); }
+        .vbar-label { font-size: 10px; color: var(--muted); }
+
+        /* List items */
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .list-item-text { flex: 1; }
+        .list-item-title { font-weight: 600; color: var(--text); }
+        .list-item-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .list-item-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+        /* Insight card / action card */
+        .action-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-right: 4px solid var(--accent);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+        }
+        .action-card.priority-high { border-right-color: var(--warning); }
+        .action-card.priority-critical { border-right-color: var(--error); }
+        .action-card.priority-low { border-right-color: var(--muted); }
+        .action-card-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+        .action-card-title { font-weight: 700; font-size: 13.5px; }
+        .action-card-desc { font-size: 12.5px; color: var(--text-soft); line-height: 1.55; }
+        .action-card-meta { display: flex; gap: 12px; margin-top: 10px; font-size: 11px; color: var(--muted); }
+        .action-card-buttons { display: flex; gap: 6px; margin-top: 10px; }
+
+        /* Section header */
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            margin-top: 8px;
+        }
+
+        /* Empty / placeholder */
+        .placeholder-zone {
+            background: var(--bg-card);
+            border: 2px dashed var(--border-strong);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--muted);
+        }
+        .placeholder-zone .ph-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.6; }
+        .placeholder-zone .ph-title { font-size: 14px; font-weight: 600; color: var(--text-soft); margin-bottom: 4px; }
+        .placeholder-zone .ph-sub { font-size: 12px; }
+
+        /* Disclaimer */
+        .disclaimer {
+            background: var(--warning-soft);
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 11.5px;
+            color: #92400e;
+            margin: 10px 0 16px;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+        .disclaimer::before { content: '⚠️'; flex-shrink: 0; }
+
+        /* Tab pills (for sub-tabs inside a screen) */
+        .subtabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0;
+        }
+        .subtab {
+            padding: 8px 14px;
+            font-size: 12.5px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-soft);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            font-family: inherit;
+            font-weight: 500;
+        }
+        .subtab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+        /* Drag-drop zone */
+        .drop-zone {
+            background: var(--bg-card);
+            border: 2px dashed var(--border-strong);
+            border-radius: 10px;
+            padding: 28px;
+            text-align: center;
+            color: var(--text-soft);
+            font-size: 13px;
+        }
+        .drop-zone:hover { border-color: var(--accent); background: var(--accent-soft); }
+        .drop-zone .dz-icon { font-size: 28px; margin-bottom: 6px; }
+
+        /* Scenarios */
+        .scenario-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .scenario-card.optimistic { border-top: 3px solid var(--success); }
+        .scenario-card.realistic { border-top: 3px solid var(--accent); }
+        .scenario-card.conservative { border-top: 3px solid var(--warning); }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar {
+                position: fixed;
+                top: 0; right: 0; bottom: 0;
+                width: 240px;
+                transform: translateX(100%);
+                transition: transform 0.2s;
+                z-index: 100;
+                box-shadow: -4px 0 24px rgba(0,0,0,0.1);
+            }
+            .sidebar.open { transform: translateX(0); }
+            .mobile-menu-btn { display: inline-flex !important; }
+            .topbar { padding: 12px 16px; }
+            .content { padding: 16px; }
+        }
+        .mobile-menu-btn { display: none; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="back-btn" onclick="window.location.href='/dashboard.html'" title="חזרה לדאשבורד">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </button>
+                <div>
+                    <div class="sidebar-title">סוכן פיננסי 💰</div>
+                    <div class="sidebar-subtitle">CFO דיגיטלי</div>
+                </div>
+            </div>
+
+            <div class="nav-group-label">סקירה</div>
+            <button class="nav-tab active" data-tab="dashboard"><span class="nav-icon">📊</span><span>דאשבורד פיננסי</span></button>
+
+            <div class="nav-group-label">תנועות</div>
+            <button class="nav-tab" data-tab="income"><span class="nav-icon">💵</span><span>הכנסות</span></button>
+            <button class="nav-tab" data-tab="expenses"><span class="nav-icon">💸</span><span>הוצאות</span></button>
+            <button class="nav-tab" data-tab="cashflow"><span class="nav-icon">🌊</span><span>תזרים</span></button>
+            <button class="nav-tab" data-tab="collections"><span class="nav-icon">🪙</span><span>גבייה</span><span class="nav-badge">3</span></button>
+
+            <div class="nav-group-label">ניתוחים</div>
+            <button class="nav-tab" data-tab="lost"><span class="nav-icon">🔍</span><span>כסף אבוד</span></button>
+            <button class="nav-tab" data-tab="profitability"><span class="nav-icon">📈</span><span>רווחיות</span></button>
+            <button class="nav-tab" data-tab="adsroi"><span class="nav-icon">🎯</span><span>פרסום מול רווח</span></button>
+            <button class="nav-tab" data-tab="forecasts"><span class="nav-icon">🔮</span><span>תחזיות</span></button>
+
+            <div class="nav-group-label">מסמכים</div>
+            <button class="nav-tab" data-tab="reconciliation"><span class="nav-icon">🏦</span><span>התאמות בנק</span></button>
+            <button class="nav-tab" data-tab="documents"><span class="nav-icon">📄</span><span>מסמכים וחשבוניות</span></button>
+            <button class="nav-tab" data-tab="reports"><span class="nav-icon">📑</span><span>דוחות</span></button>
+
+            <div class="nav-group-label">סוכן AI</div>
+            <button class="nav-tab" data-tab="chat"><span class="nav-icon">💬</span><span>צ׳אט פיננסי</span></button>
+            <button class="nav-tab" data-tab="tasks"><span class="nav-icon">✅</span><span>משימות פיננסיות</span></button>
+            <button class="nav-tab" data-tab="alerts"><span class="nav-icon">🔔</span><span>התראות</span><span class="nav-badge">5</span></button>
+
+            <div class="nav-group-label">תצורה</div>
+            <button class="nav-tab" data-tab="settings"><span class="nav-icon">⚙️</span><span>הגדרות פיננסיות</span></button>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="main">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h1 id="pageTitle">דאשבורד פיננסי</h1>
+                    <p id="pageSubtitle">מנהל הכספים הדיגיטלי של העסק שלך</p>
+                </div>
+                <div class="topbar-actions">
+                    <button class="btn mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+                    <button class="btn">📅 מאי 2026 ▾</button>
+                    <button class="btn primary">+ הוסף תנועה</button>
+                </div>
+            </header>
+
+            <div class="content" id="content">
+                <!-- All tab panels will be injected here by JS -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ============ AUTH GUARD ============
+        if (sessionStorage.getItem('pc_authenticated') !== 'true') {
+            window.location.href = '/login.html';
+        }
+
+        // ============ MOCK DATA - Israeli business ============
+        const MOCK = {
+            currentMonth: 'מאי 2026',
+            kpis: {
+                revenue: { value: 184000, trend: +8, prev: 170000 },
+                expenses: { value: 123000, trend: +15, prev: 107000 },
+                profit: { value: 61000, trend: +12, prev: 54600 },
+                margin: { value: 33.2, trend: -2, prev: 35.2 },
+                cash: { value: 287400, trend: +5, prev: 273700 },
+                openCollections: { value: 42000, trend: +18, prev: 35600 },
+                openInvoices: { value: 11, trend: +3, prev: 8 },
+                unusualExpenses: { value: 8420, trend: +120, prev: 3830 },
+                adRatio: { value: 14.5, trend: +4, prev: 10.5 },
+                cpl: { value: 78, trend: -12, prev: 88 },
+                cac: { value: 412, trend: +8, prev: 381 },
+                forecastRevenue: { value: 210000, trend: 0, prev: null },
+                forecastProfit: { value: 61000, trend: 0, prev: null },
+            },
+            income: [
+                { date: '2026-05-24', client: 'אלון משכן בע״מ', business: 'אלון משכן', source: 'הפנייה', service: 'ייעוץ אסטרטגי', preVat: 12000, vat: 2160, total: 14160, method: 'העברה בנקאית', status: 'שולם', invoice: 'A2026-0145', receipt: 'R-0312', dueDate: '2026-05-30', paidDate: '2026-05-24', dealId: 'CRM-1248', rep: 'יוסי כהן', campaign: 'Facebook Q2', notes: '-', files: 1, reconciled: 'מותאם' },
+                { date: '2026-05-23', client: 'דנטל פלוס', business: 'דנטל פלוס מרפאה', source: 'אתר', service: 'הקמת מערכת', preVat: 18500, vat: 3330, total: 21830, method: 'אשראי', status: 'שולם', invoice: 'A2026-0144', receipt: 'R-0311', dueDate: '2026-05-25', paidDate: '2026-05-23', dealId: 'CRM-1247', rep: 'רחל לוי', campaign: 'Google Ads', notes: '-', files: 2, reconciled: 'מותאם' },
+                { date: '2026-05-22', client: 'סטודיו עיצוב NOA', business: 'NOA Design', source: 'הפנייה', service: 'ליווי חודשי', preVat: 6800, vat: 1224, total: 8024, method: 'הוראת קבע', status: 'שולם', invoice: 'A2026-0143', receipt: 'R-0310', dueDate: '2026-05-22', paidDate: '2026-05-22', dealId: 'CRM-1180', rep: 'יוסי כהן', campaign: 'אורגני', notes: 'לקוח קבוע', files: 1, reconciled: 'מותאם' },
+                { date: '2026-05-20', client: 'מטבחי דרור', business: 'דרור מטבחים בע״מ', source: 'אינסטגרם', service: 'קמפיין שיווקי', preVat: 24000, vat: 4320, total: 28320, method: 'צ׳ק', status: 'ממתין לתשלום', invoice: 'A2026-0142', receipt: '-', dueDate: '2026-06-15', paidDate: '-', dealId: 'CRM-1245', rep: 'דנה אבן', campaign: 'Instagram', notes: 'צ׳ק דחוי', files: 1, reconciled: 'דורש בדיקה' },
+                { date: '2026-05-19', client: 'עו״ד שירה ברק', business: 'משרד שירה ברק', source: 'LinkedIn', service: 'יעוץ דיגיטלי', preVat: 4500, vat: 810, total: 5310, method: 'העברה', status: 'באיחור', invoice: 'A2026-0141', receipt: '-', dueDate: '2026-05-25', paidDate: '-', dealId: 'CRM-1240', rep: 'יוסי כהן', campaign: 'LinkedIn', notes: 'תזכורת נשלחה', files: 1, reconciled: 'לא תואם בנק' },
+                { date: '2026-05-18', client: 'חברת קוסמה', business: 'Cosma Cosmetics', source: 'מובייל', service: 'מערך אוטומציה', preVat: 32000, vat: 5760, total: 37760, method: 'העברה', status: 'תשלום חלקי', invoice: 'A2026-0140', receipt: 'R-0309', dueDate: '2026-05-30', paidDate: '2026-05-20', dealId: 'CRM-1238', rep: 'רחל לוי', campaign: 'Google', notes: '50% שולם', files: 2, reconciled: 'בהתאמה' },
+                { date: '2026-05-15', client: 'יוסי שטרן בע״מ', business: 'שטרן ייעוץ', source: 'הפנייה', service: 'ייעוץ עסקי', preVat: 8000, vat: 1440, total: 9440, method: 'אשראי', status: 'שולם', invoice: 'A2026-0139', receipt: 'R-0308', dueDate: '2026-05-15', paidDate: '2026-05-15', dealId: 'CRM-1236', rep: 'דנה אבן', campaign: 'אורגני', notes: '-', files: 1, reconciled: 'מותאם' },
+                { date: '2026-05-12', client: 'מרכז הריון אסיא', business: 'אסיא קליניק', source: 'אתר', service: 'ניהול קמפיינים', preVat: 14500, vat: 2610, total: 17110, method: 'הוראת קבע', status: 'שולם', invoice: 'A2026-0138', receipt: 'R-0307', dueDate: '2026-05-12', paidDate: '2026-05-12', dealId: 'CRM-1180', rep: 'יוסי כהן', campaign: 'אורגני', notes: '-', files: 1, reconciled: 'מותאם' },
+                { date: '2026-05-10', client: 'גן יוסי בע״מ', business: 'גן יוסי', source: 'WhatsApp', service: 'יעוץ דיגיטלי', preVat: 3500, vat: 630, total: 4130, method: 'מזומן', status: 'שולם', invoice: 'A2026-0137', receipt: 'R-0306', dueDate: '2026-05-10', paidDate: '2026-05-10', dealId: 'CRM-1234', rep: 'דנה אבן', campaign: 'הפנייה', notes: '-', files: 0, reconciled: 'מותאם ידנית' },
+                { date: '2026-05-08', client: 'TechFlow', business: 'TechFlow Israel', source: 'LinkedIn', service: 'הקמת מערכת CRM', preVat: 45000, vat: 8100, total: 53100, method: 'העברה', status: 'שולם', invoice: 'A2026-0136', receipt: 'R-0305', dueDate: '2026-05-15', paidDate: '2026-05-09', dealId: 'CRM-1230', rep: 'רחל לוי', campaign: 'LinkedIn', notes: 'פרויקט גדול', files: 3, reconciled: 'מותאם' },
+                { date: '2026-05-05', client: 'מודה בוטיק', business: 'מודה בוטיק TLV', source: 'אינסטגרם', service: 'ניהול מדיה', preVat: 6500, vat: 1170, total: 7670, method: 'הוראת קבע', status: 'שולם', invoice: 'A2026-0135', receipt: 'R-0304', dueDate: '2026-05-05', paidDate: '2026-05-05', dealId: 'CRM-1180', rep: 'יוסי כהן', campaign: 'Instagram', notes: '-', files: 1, reconciled: 'מותאם' },
+                { date: '2026-05-03', client: 'יעקובי דיגיטל', business: 'יעקובי בע״מ', source: 'הפנייה', service: 'ייעוץ אסטרטגי', preVat: 7500, vat: 1350, total: 8850, method: 'העברה', status: 'באיחור', invoice: 'A2026-0134', receipt: '-', dueDate: '2026-05-10', paidDate: '-', dealId: 'CRM-1228', rep: 'דנה אבן', campaign: 'אורגני', notes: 'התקשרתי 2 פעמים', files: 1, reconciled: 'לא תואם בנק' },
+            ],
+            expenses: [
+                { date: '2026-05-24', supplier: 'Meta (Facebook)', category: 'פרסום', sub: 'Facebook Ads', preVat: 8500, vat: 1530, total: 10030, method: 'אשראי', account: 'ויזה 4521', recurring: 'משתנה', recognized: 'מוכרת', invoice: 'FB-2604', file: 1, approver: 'רון', dept: 'שיווק', project: 'Q2', client: '-', notes: 'קמפיין מאי', reconciled: 'מותאם', unusual: 'גבוהה' },
+                { date: '2026-05-22', supplier: 'Google Ads', category: 'פרסום', sub: 'Google Search', preVat: 5200, vat: 936, total: 6136, method: 'אשראי', account: 'ויזה 4521', recurring: 'משתנה', recognized: 'מוכרת', invoice: 'GA-1832', file: 1, approver: 'רון', dept: 'שיווק', project: 'Q2', client: '-', notes: '-', reconciled: 'מותאם', unusual: 'תקין' },
+                { date: '2026-05-20', supplier: 'יעל פרידמן (פרילנס)', category: 'פרילנסרים', sub: 'עיצוב גרפי', preVat: 4500, vat: 0, total: 4500, method: 'העברה', account: 'בנק לאומי', recurring: 'משתנה', recognized: 'מוכרת', invoice: 'YF-051', file: 1, approver: 'רון', dept: 'שיווק', project: 'NOA Brand', client: 'NOA Design', notes: 'עיצוב logo', reconciled: 'מותאם', unusual: 'תקין' },
+                { date: '2026-05-15', supplier: 'WeWork', category: 'שכירות', sub: 'משרד', preVat: 3800, vat: 684, total: 4484, method: 'הוראת קבע', account: 'בנק לאומי', recurring: 'קבועה', recognized: 'מוכרת', invoice: 'WE-2605', file: 1, approver: 'רון', dept: 'משרד', project: '-', client: '-', notes: '-', reconciled: 'מותאם', unusual: 'תקין' },
+                { date: '2026-05-15', supplier: 'OpenAI', category: 'תוכנות', sub: 'AI / API', preVat: 890, vat: 160, total: 1050, method: 'אשראי', account: 'ויזה 4521', recurring: 'משתנה', recognized: 'מוכרת', invoice: 'OAI-0512', file: 1, approver: 'רון', dept: 'פיתוח', project: 'אוטומציה', client: '-', notes: 'API usage', reconciled: 'מותאם', unusual: 'תקין' },
+                { date: '2026-05-14', supplier: 'דוד כהן (פרילנס)', category: 'פרילנסרים', sub: 'פיתוח', preVat: 12000, vat: 0, total: 12000, method: 'העברה', account: 'בנק לאומי', recurring: 'משתנה', recognized: 'מוכרת', invoice: 'DK-038', file: 1, approver: 'רון', dept: 'פיתוח', project: 'TechFlow', client: 'TechFlow', notes: 'CRM dev', reconciled: 'מותאם', unusual: 'תקין' },
+                { date: '2026-05-12', supplier: 'Anthropic', category: 'תוכנות', sub: 'AI / API', preVat: 1450, vat: 261, total: 1711, method: 'אשראי', account: 'ויזה 4521', recurring: 'משתנה', recognized: 'מוכרת', invoice: 'AN-051', file: 1, approver: 'רון', dept: 'פיתוח', project: 'AI Agent', client: '-', notes: 'Claude API', reconciled: 'מותאם', unusual: 'גבוהה' },
+                { date: '2026-05-10', supplier: 'משה לוי רו״ח', category: 'רו״ח', sub: 'שירותי רואה חשבון', preVat: 2200, vat: 396, total: 2596, method: 'העברה', account: 'בנק לאומי', recurring: 'קבועה', recognized: 'מוכרת', invoice: 'ML-0510', file: 1, approver: 'רון', dept: 'כספים', project: '-', client: '-', notes: '-', reconciled: 'מותאם', unusual: 'תקין' },
+                { date: '2026-05-08', supplier: 'דלק (תדלוק)', category: 'רכבים', sub: 'דלק', preVat: 380, vat: 68, total: 448, method: 'אשראי', account: 'ויזה דלק', recurring: 'משתנה', recognized: 'מוכרת', invoice: 'PAZ-1508', file: 0, approver: 'רון', dept: '-', project: '-', client: '-', notes: '-', reconciled: 'דורש בדיקה', unusual: 'תקין' },
+                { date: '2026-05-07', supplier: 'Zapier', category: 'תוכנות', sub: 'אוטומציה', preVat: 79, vat: 14, total: 93, method: 'אשראי', account: 'ויזה 4521', recurring: 'קבועה', recognized: 'מוכרת', invoice: 'ZAP-052', file: 0, approver: 'רון', dept: 'פיתוח', project: '-', client: '-', notes: 'subscription', reconciled: 'מותאם', unusual: 'תקין' },
+                { date: '2026-05-06', supplier: 'Loom', category: 'תוכנות', sub: 'וידאו', preVat: 65, vat: 12, total: 77, method: 'אשראי', account: 'ויזה 4521', recurring: 'קבועה', recognized: 'מוכרת', invoice: 'LM-052', file: 0, approver: 'רון', dept: 'משרד', project: '-', client: '-', notes: 'לא מנצלים', reconciled: 'מותאם', unusual: 'תקין' },
+                { date: '2026-05-05', supplier: 'Tranzilla עמלות', category: 'עמלות', sub: 'סליקה', preVat: 980, vat: 176, total: 1156, method: 'ניכוי', account: 'בנק לאומי', recurring: 'משתנה', recognized: 'מוכרת', invoice: 'TZ-051', file: 1, approver: 'אוטומטי', dept: 'כספים', project: '-', client: '-', notes: '-', reconciled: 'מותאם', unusual: 'גבוהה' },
+            ],
+            collections: [
+                { client: 'מטבחי דרור', amount: 28320, invoiceDate: '2026-05-20', dueDate: '2026-06-15', daysLate: 0, status: 'ממתין', rep: 'דנה אבן', method: 'צ׳ק', action: 'המתן לתאריך פירעון' },
+                { client: 'עו״ד שירה ברק', amount: 5310, invoiceDate: '2026-05-19', dueDate: '2026-05-25', daysLate: 1, status: 'באיחור', rep: 'יוסי כהן', method: 'העברה', action: 'שלח תזכורת שניה' },
+                { client: 'יעקובי דיגיטל', amount: 8850, invoiceDate: '2026-05-03', dueDate: '2026-05-10', daysLate: 16, status: 'באיחור קריטי', rep: 'דנה אבן', method: 'העברה', action: 'התקשר אישית' },
+                { client: 'חברת קוסמה (יתרה)', amount: 18880, invoiceDate: '2026-05-18', dueDate: '2026-05-30', daysLate: 0, status: 'תשלום חלקי', rep: 'רחל לוי', method: 'העברה', action: 'דרוש יתרת תשלום' },
+                { client: 'מועדון ספורט הוד', amount: 4720, invoiceDate: '2026-04-28', dueDate: '2026-05-05', daysLate: 21, status: 'באיחור קריטי', rep: 'יוסי כהן', method: 'אשראי', action: 'שיחה אישית דחוף' },
+                { client: 'אופנת רחל', amount: 6200, invoiceDate: '2026-05-12', dueDate: '2026-05-22', daysLate: 4, status: 'באיחור', rep: 'דנה אבן', method: 'העברה', action: 'תזכורת אוטומטית' },
+            ],
+            lost: [
+                { type: 'גבייה פתוחה', title: 'לקוחות שלא שילמו ב-45 ימים', amount: 17420, severity: 'high', confidence: 95, action: 'יצירת משימת גבייה לכל אחד' },
+                { type: 'מנויים מיותרים', title: '6 מנויי תוכנה לא בשימוש', amount: 2870, severity: 'medium', confidence: 80, action: 'בדיקת שימוש וביטול' },
+                { type: 'הנחות מוגזמות', title: 'הנחות שניתנו החודש פגעו ברווח', amount: 14600, severity: 'high', confidence: 90, action: 'קביעת תקרת הנחה לנציגים' },
+                { type: 'חיובים כפולים', title: 'חיוב כפול מ-Anthropic', amount: 1711, severity: 'critical', confidence: 99, action: 'פנייה לספק להחזר' },
+                { type: 'קמפיין לא רווחי', title: 'Instagram Q2 - CAC חורג', amount: 8200, severity: 'medium', confidence: 85, action: 'עצירה זמנית של הקמפיין' },
+                { type: 'לקוחות לא רווחיים', title: '3 לקוחות עם רווחיות שלילית', amount: 9300, severity: 'medium', confidence: 75, action: 'העלאת מחיר או סיום שירות' },
+            ],
+            alerts: [
+                { type: 'הוצאה חריגה', severity: 'critical', title: 'חיוב כפול ב-Anthropic', desc: 'זוהה חיוב כפול של 1,711 ₪ בהפרש של יומיים מאותו ספק', amount: 1711, entity: 'Anthropic', date: '2026-05-12' },
+                { type: 'איחור בתשלום', severity: 'high', title: 'יעקובי דיגיטל - 16 ימים באיחור', desc: 'חשבונית A2026-0134 לא שולמה. ניסית להתקשר 2 פעמים', amount: 8850, entity: 'יעקובי דיגיטל', date: '2026-05-10' },
+                { type: 'ירידה ברווחיות', severity: 'high', title: 'אחוז רווחיות ירד ל-33.2%', desc: 'בחודש הקודם הרווחיות הייתה 35.2%. הסיבה: עליית הוצאות פרסום ב-38%', amount: 5500, entity: 'כללי', date: '2026-05-24' },
+                { type: 'תזרים שלילי צפוי', severity: 'high', title: 'פער תזרים בעוד 12 יום', desc: 'תשלומים של 47K ₪ מול גבייה צפויה של 28K ₪', amount: 19000, entity: 'תזרים', date: '2026-05-24' },
+                { type: 'קמפיין לא רווחי', severity: 'medium', title: 'Instagram Q2 שורף כסף', desc: 'הוצאה של 12,400 ₪ הביאה רק 2 עסקאות שווה 8,000 ₪', amount: 4400, entity: 'Instagram Q2', date: '2026-05-20' },
+                { type: 'מנוי לא בשימוש', severity: 'low', title: 'Loom - 0 שימושים החודש', desc: 'אתה משלם 77 ₪ לחודש אבל לא השתמשת', amount: 77, entity: 'Loom', date: '2026-05-06' },
+            ],
+            tasks: [
+                { title: 'התקשר ליעקובי דיגיטל לגבייה', priority: 'קריטית', assignee: 'דנה אבן', due: '2026-05-26', status: 'חדש', related: 'חשבונית A2026-0134', amount: 8850 },
+                { title: 'בדוק חיוב כפול מ-Anthropic', priority: 'גבוהה', assignee: 'רון', due: '2026-05-27', status: 'חדש', related: 'AN-051', amount: 1711 },
+                { title: 'שלח תזכורת לעו״ד שירה ברק', priority: 'גבוהה', assignee: 'יוסי כהן', due: '2026-05-26', status: 'בטיפול', related: 'חשבונית A2026-0141', amount: 5310 },
+                { title: 'בדוק רווחיות שירות ייעוץ', priority: 'בינונית', assignee: 'רון', due: '2026-05-30', status: 'חדש', related: 'ניתוח רווחיות', amount: null },
+                { title: 'אישור התאמה - דלק', priority: 'נמוכה', assignee: 'רון', due: '2026-05-28', status: 'ממתין לאישור', related: 'PAZ-1508', amount: 448 },
+                { title: 'בטל מנוי Loom שלא בשימוש', priority: 'נמוכה', assignee: 'רון', due: '2026-06-01', status: 'חדש', related: 'Loom', amount: 77 },
+                { title: 'הכן דוח סוף מאי לרו״ח', priority: 'בינונית', assignee: 'רון', due: '2026-06-05', status: 'חדש', related: 'דוח חודשי', amount: null },
+            ],
+            documents: [
+                { name: 'חשבונית-A2026-0145.pdf', type: 'חשבונית מס', date: '2026-05-24', entity: 'אלון משכן בע״מ', amount: 14160, vat: 2160, number: 'A2026-0145', status: 'חולץ אוטומטית', confidence: 98 },
+                { name: 'חשבונית-A2026-0144.pdf', type: 'חשבונית מס', date: '2026-05-23', entity: 'דנטל פלוס', amount: 21830, vat: 3330, number: 'A2026-0144', status: 'חולץ אוטומטית', confidence: 99 },
+                { name: 'דוח-בנק-לאומי-מאי.pdf', type: 'דוח בנק', date: '2026-05-25', entity: 'בנק לאומי', amount: null, vat: null, number: '4520-052', status: 'בעיבוד', confidence: 85 },
+                { name: 'דוח-ויזה-4521-מאי.pdf', type: 'דוח כרטיס אשראי', date: '2026-05-26', entity: 'ויזה כאל', amount: 19421, vat: null, number: 'V4521-052', status: 'חולץ אוטומטית', confidence: 92 },
+                { name: 'חשבונית-FB-2604.pdf', type: 'חשבונית ספק', date: '2026-05-24', entity: 'Meta', amount: 10030, vat: 1530, number: 'FB-2604', status: 'חולץ אוטומטית', confidence: 95 },
+                { name: 'הסכם-TechFlow-CRM.pdf', type: 'הסכם לקוח', date: '2026-05-01', entity: 'TechFlow Israel', amount: 53100, vat: 8100, number: '-', status: 'דורש בדיקה', confidence: 70 },
+                { name: 'הצעת-מחיר-001.pdf', type: 'הצעת מחיר', date: '2026-05-22', entity: 'מטבחי דרור', amount: 28320, vat: 4320, number: 'PROP-001', status: 'חולץ אוטומטית', confidence: 88 },
+            ],
+            bankTx: [
+                { date: '2026-05-24', source: 'בנק לאומי', desc: 'העברה - אלון משכן', party: 'אלון משכן', amount: 14160, type: 'זכות', suggested: 'A2026-0145', confidence: 99, status: 'מותאם אוטומטית', action: 'אושר' },
+                { date: '2026-05-24', source: 'ויזה 4521', desc: 'META PLATFORMS', party: 'Meta', amount: -10030, type: 'חובה', suggested: 'FB-2604', confidence: 98, status: 'מותאם אוטומטית', action: 'אושר' },
+                { date: '2026-05-23', source: 'בנק לאומי', desc: 'העברה - דנטל פלוס', party: 'דנטל פלוס', amount: 21830, type: 'זכות', suggested: 'A2026-0144', confidence: 99, status: 'מותאם אוטומטית', action: 'אושר' },
+                { date: '2026-05-12', source: 'ויזה 4521', desc: 'ANTHROPIC', party: 'Anthropic', amount: -1711, type: 'חובה', suggested: 'AN-051', confidence: 95, status: 'מותאם אוטומטית', action: 'אושר' },
+                { date: '2026-05-14', source: 'ויזה 4521', desc: 'ANTHROPIC', party: 'Anthropic', amount: -1711, type: 'חובה', suggested: 'AN-051 (כפילות?)', confidence: 45, status: 'חשד לכפילות', action: 'דורש בדיקה' },
+                { date: '2026-05-19', source: 'בנק לאומי', desc: 'העברה - לקוח לא ידוע', party: 'XYZ', amount: 12500, type: 'זכות', suggested: '-', confidence: 0, status: 'לא נמצא מקור', action: 'יצירת חשבונית?' },
+                { date: '2026-05-08', source: 'ויזה דלק', desc: 'PAZ FUEL', party: 'דלק', amount: -448, type: 'חובה', suggested: 'PAZ-1508', confidence: 80, status: 'דורש אישור', action: 'אישור התאמה' },
+                { date: '2026-05-22', source: 'ויזה 4521', desc: 'GOOGLE ADS', party: 'Google', amount: -6136, type: 'חובה', suggested: 'GA-1832', confidence: 96, status: 'מותאם אוטומטית', action: 'אושר' },
+            ],
+            campaigns: [
+                { name: 'Facebook Q2', spend: 8500, leads: 109, meetings: 18, sales: 4, revenue: 38000, profit: 18500, cpl: 78, cac: 2125, roi: 217, status: 'רווחי', recommendation: 'הגדל תקציב' },
+                { name: 'Google Ads', spend: 5200, leads: 64, meetings: 12, sales: 5, revenue: 42000, profit: 24000, cpl: 81, cac: 1040, roi: 462, status: 'רווחי מאוד', recommendation: 'הגדל משמעותית' },
+                { name: 'LinkedIn', spend: 3400, leads: 22, meetings: 9, sales: 3, revenue: 51000, profit: 32000, cpl: 155, cac: 1133, roi: 941, status: 'מעולה', recommendation: 'הגדל פי 2' },
+                { name: 'Instagram Q2', spend: 12400, leads: 145, meetings: 11, sales: 2, revenue: 8000, profit: -4400, cpl: 86, cac: 6200, roi: -35, status: 'מפסיד', recommendation: 'עצור מיידית' },
+                { name: 'TikTok', spend: 2100, leads: 38, meetings: 4, sales: 1, revenue: 4500, profit: 1200, cpl: 55, cac: 2100, roi: 57, status: 'גבולי', recommendation: 'בדוק יעדים' },
+                { name: 'אורגני (אתר)', spend: 0, leads: 28, meetings: 14, sales: 8, revenue: 67000, profit: 49000, cpl: 0, cac: 0, roi: 9999, status: 'מצוין', recommendation: 'השקע ב-SEO' },
+            ],
+            profitabilityByService: [
+                { name: 'הקמת מערכת CRM', revenue: 98000, costs: 38000, profit: 60000, margin: 61.2 },
+                { name: 'ייעוץ אסטרטגי', revenue: 27500, costs: 4200, profit: 23300, margin: 84.7 },
+                { name: 'ליווי חודשי', revenue: 31700, costs: 11200, profit: 20500, margin: 64.7 },
+                { name: 'קמפיין שיווקי', revenue: 24000, costs: 19400, profit: 4600, margin: 19.2 },
+                { name: 'ניהול מדיה', revenue: 14170, costs: 8700, profit: 5470, margin: 38.6 },
+                { name: 'יעוץ דיגיטלי', revenue: 13000, costs: 2100, profit: 10900, margin: 83.8 },
+            ],
+            profitabilityByClient: [
+                { name: 'TechFlow Israel', revenue: 53100, costs: 19200, profit: 33900, margin: 63.8 },
+                { name: 'Cosma Cosmetics', revenue: 37760, costs: 8400, profit: 29360, margin: 77.8 },
+                { name: 'מטבחי דרור', revenue: 28320, costs: 22100, profit: 6220, margin: 22.0 },
+                { name: 'דנטל פלוס', revenue: 21830, costs: 4200, profit: 17630, margin: 80.8 },
+                { name: 'אסיא קליניק', revenue: 17110, costs: 3200, profit: 13910, margin: 81.3 },
+                { name: 'אלון משכן בע״מ', revenue: 14160, costs: 1800, profit: 12360, margin: 87.3 },
+                { name: 'יעקובי דיגיטל', revenue: 8850, costs: 8100, profit: 750, margin: 8.5 },
+            ],
+            cashFlowForecast: [
+                { day: 'יום 1', income: 12000, expense: 5000, balance: 287400 },
+                { day: 'יום 7', income: 24000, expense: 8500, balance: 302900 },
+                { day: 'יום 14', income: 38000, expense: 31500, balance: 309400 },
+                { day: 'יום 21', income: 55000, expense: 47000, balance: 317400 },
+                { day: 'יום 30', income: 78000, expense: 61000, balance: 334400 },
+                { day: 'יום 45', income: 110000, expense: 89000, balance: 355400 },
+                { day: 'יום 60', income: 142000, expense: 121000, balance: 376400 },
+            ],
+            scenarios: {
+                conservative: { revenue: 195000, expenses: 132000, profit: 63000, cash: 312000, risk: 'גבוה', assumption: 'גבייה מתעכבת ב-30 יום, ירידה של 10% בעסקאות חדשות', action: 'הקטן הוצאות פרסום, גביה אגרסיבית' },
+                realistic: { revenue: 210000, expenses: 125000, profit: 85000, cash: 357400, risk: 'בינוני', assumption: 'גבייה רגילה, קצב מכירות נוכחי נשמר', action: 'המשך כרגיל, עקוב אחרי לקוח יעקובי' },
+                optimistic: { revenue: 235000, expenses: 128000, profit: 107000, cash: 395000, risk: 'נמוך', assumption: 'נסגרות 2 עסקאות גדולות בצינור, גבייה מהירה', action: 'הגדל תקציב פרסום ב-30%' },
+            },
+            reports: [
+                { name: 'דוח חודשי - מאי 2026', desc: 'סיכום הכנסות, הוצאות ורווחיות לחודש', lastGen: '2026-05-25', status: 'מעודכן' },
+                { name: 'דוח רווח והפסד', desc: 'P&L מפורט עם פילוח קטגוריות', lastGen: '2026-05-25', status: 'מעודכן' },
+                { name: 'דוח תזרים', desc: 'תזרים בפועל + תחזיות 30/60/90', lastGen: '2026-05-25', status: 'מעודכן' },
+                { name: 'דוח גבייה', desc: 'חשבוניות פתוחות + מחלקי גיל חוב', lastGen: '2026-05-24', status: 'מעודכן' },
+                { name: 'דוח הוצאות חריגות', desc: '12 הוצאות שזוהו כחריגות החודש', lastGen: '2026-05-25', status: 'מעודכן' },
+                { name: 'דוח קמפיינים פיננסי', desc: 'ROI לפי קמפיין + המלצות', lastGen: '2026-05-25', status: 'מעודכן' },
+                { name: 'דוח לקוחות לא רווחיים', desc: '3 לקוחות עם רווחיות מתחת ל-15%', lastGen: '2026-05-25', status: 'מעודכן' },
+                { name: 'דוח כסף אבוד', desc: 'סיכום של 17,420 ₪ שאותרו כאבודים', lastGen: '2026-05-25', status: 'מעודכן' },
+                { name: 'דוח התאמות בנק', desc: '8 תנועות מותאמות, 3 דורשות בדיקה', lastGen: '2026-05-26', status: 'בעיבוד' },
+                { name: 'דוח לרואה חשבון', desc: 'יצוא מוכן לרו״ח לקראת דיווח מע״מ', lastGen: '2026-05-20', status: 'ישן' },
+            ],
+            smartQuestions: [
+                { cat: 'הוצאות', q: 'מה ההוצאה הכי כבדה שלך כרגע?', why: 'זיהוי הוצאה דומיננטית שמשפיעה על הרווחיות' },
+                { cat: 'לקוחות', q: 'איזה לקוח דורש הכי הרבה זמן?', why: 'גילוי לקוחות שלוקחים יותר משווים' },
+                { cat: 'מכירות', q: 'איזה שירות הכי קל לך למכור?', why: 'הבנת הכוח המכירתי שלך' },
+                { cat: 'רווחיות', q: 'איזה שירות הכי רווחי לך באמת?', why: 'התמקדות במה שמרוויח' },
+                { cat: 'שיווק', q: 'האם אתה יודע כמה עולה לך להביא לקוח?', why: 'CAC הוא המספר הכי חשוב לעסק' },
+                { cat: 'גבייה', q: 'כמה כסף פתוח יש לך שלא נגבה?', why: 'תזרים יותר חשוב מרווח' },
+                { cat: 'יעדים', q: 'כמה כסף אתה צריך להכניס החודש כדי להיות רגוע?', why: 'הגדרת יעד ברור = פוקוס' },
+                { cat: 'חיתוכים', q: 'איזו הוצאה היית מוריד אם היית חייב לחתוך 10%?', why: 'תרגיל מנטלי לזיהוי שמן עודף' },
+                { cat: 'אסטרטגיה', q: 'איזה מוצר היית דוחף יותר אם היית מסתכל רק על רווחיות?', why: 'יישור אסטרטגיה עם נתונים' },
+                { cat: 'יעדים', q: 'מה אחוז הרווחיות שאתה רוצה להגיע אליו?', why: 'יעד ברור לפעולות' },
+                { cat: 'תזרים', q: 'כמה כסף העסק צריך להשאיר כל חודש אחרי הכל?', why: 'יעד מינימום לקבלת החלטות' },
+            ],
+        };
+
+        // Helpers
+        const fmt = (n) => (typeof n === 'number') ? '₪ ' + n.toLocaleString('he-IL') : '-';
+        const fmtPct = (n) => typeof n === 'number' ? n.toFixed(1) + '%' : '-';
+        const trend = (n) => {
+            if (n === 0 || n === null) return '<span class="kpi-trend flat">―</span>';
+            const sign = n > 0 ? '+' : '';
+            const cls = n > 0 ? 'up' : 'down';
+            const arrow = n > 0 ? '▲' : '▼';
+            return `<span class="kpi-trend ${cls}">${arrow} ${sign}${n}%</span>`;
+        };
+
+        // ============ TAB CONTROLLERS ============
+        const TABS = {};  // Will be filled with render functions
+
+        const TAB_META = {
+            dashboard: { title: 'דאשבורד פיננסי', subtitle: 'מנהל הכספים הדיגיטלי של העסק שלך' },
+            income: { title: 'הכנסות', subtitle: 'כל ההכנסות של העסק במקום אחד' },
+            expenses: { title: 'הוצאות', subtitle: 'הוצאות מסווגות + זיהוי חריגות' },
+            cashflow: { title: 'תזרים מזומנים', subtitle: 'מה נכנס, מה יוצא, מתי' },
+            collections: { title: 'גבייה', subtitle: 'מי חייב לך כסף ומתי' },
+            lost: { title: 'כסף אבוד', subtitle: 'איפה העסק שורף כסף בלי לשים לב' },
+            profitability: { title: 'רווחיות', subtitle: 'איפה אתה באמת מרוויח' },
+            adsroi: { title: 'פרסום מול רווח', subtitle: 'איזה קמפיין מחזיר את עצמו' },
+            forecasts: { title: 'תחזיות', subtitle: 'מה צפוי בחודשים הבאים' },
+            reconciliation: { title: 'התאמות בנק', subtitle: 'מקשר בין בנק/אשראי לחשבוניות' },
+            documents: { title: 'מסמכים וחשבוניות', subtitle: 'מרכז ניהול מסמכים פיננסיים' },
+            reports: { title: 'דוחות', subtitle: 'כל הדוחות שאתה צריך' },
+            chat: { title: 'צ׳אט פיננסי', subtitle: 'שאל את הסוכן הפיננסי כל שאלה' },
+            tasks: { title: 'משימות פיננסיות', subtitle: 'משימות שנוצרו מתובנות הסוכן' },
+            alerts: { title: 'התראות', subtitle: 'דברים שדורשים את תשומת לבך' },
+            settings: { title: 'הגדרות פיננסיות', subtitle: 'התאמה אישית של המודול' },
+        };
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+            document.getElementById('pageTitle').textContent = TAB_META[tabName].title;
+            document.getElementById('pageSubtitle').textContent = TAB_META[tabName].subtitle;
+            const content = document.getElementById('content');
+            const renderer = TABS[tabName];
+            if (renderer) {
+                content.innerHTML = renderer();
+                // Run any after-render hooks
+                if (TABS[tabName + '_after']) TABS[tabName + '_after']();
+            } else {
+                content.innerHTML = '<div class="placeholder-zone"><div class="ph-icon">🚧</div><div class="ph-title">בקרוב</div><div class="ph-sub">המסך הזה בבנייה</div></div>';
+            }
+            // Close mobile sidebar
+            document.getElementById('sidebar').classList.remove('open');
+            window.scrollTo(0, 0);
+            document.getElementById('content').scrollTo(0, 0);
+        }
+
+        document.querySelectorAll('.nav-tab').forEach(t => {
+            t.addEventListener('click', () => switchTab(t.dataset.tab));
+        });
+
+        // ============ TAB RENDERERS (will be added in chunks) ============
+        // Placeholders so the file works while we add real renderers
+        ['dashboard','income','expenses','cashflow','collections','lost','profitability','adsroi','forecasts','reconciliation','documents','reports','chat','tasks','alerts','settings'].forEach(name => {
+            if (!TABS[name]) {
+                TABS[name] = () => `<div class="placeholder-zone"><div class="ph-icon">🚧</div><div class="ph-title">${TAB_META[name].title}</div><div class="ph-sub">בבנייה - יישלם בעדכון הבא</div></div>`;
+            }
+        });
+
+        // (Real renderers injected below this point in a separate script tag)
+    </script>
+    <script src="financial-agent-tabs.js"></script>
+    <script>
+        // Initial render
+        switchTab('dashboard');
+    </script>
+</body>
+</html>
+</content>
+</invoke>
