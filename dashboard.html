@@ -18,8 +18,8 @@
             --sidebar-bg: #141416;
             --sidebar-text: #f0f0f0;
             --sidebar-muted: #8e8e93;
-            --accent: #ff6b35;          /* Cowork-orange send button */
-            --accent-soft: rgba(255,107,53,0.15);
+            --accent: #3b82f6;          /* Blue (Ron's preference) */
+            --accent-soft: rgba(59,130,246,0.15);
             --link: #5fa8ff;
             --text: #f0f0f0;
             --muted: #8e8e93;
@@ -257,6 +257,7 @@
             background: var(--accent);
             color: #fff;
             border: none;
+            font-weight: 600;
             padding: 8px 16px;
             border-radius: 8px;
             font-family: inherit;
@@ -269,7 +270,7 @@
             align-items: center;
             gap: 8px;
         }
-        .connect-btn:hover { background: #ff7a4c; transform: translateY(-1px); }
+        .connect-btn:hover { background: #2563eb; transform: translateY(-1px); }
 
         .success-banner {
             background: rgba(74,222,128,0.08);
@@ -742,7 +743,7 @@
         }
 
         .send-btn:hover:not(:disabled) {
-            background: #ff7a4c;
+            background: #2563eb;
             transform: translateY(-1px);
         }
 
@@ -1363,13 +1364,10 @@
             setWaitingMode(true);
             startWatchdog();
 
-            // Pick endpoint: streaming for "claude" agent, classic for accounting
+            // Both agents use the proven /api/chat endpoint.
+            // Streaming endpoint exists but is disabled until proxy issue resolved.
             try {
-                if (currentAgent === 'claude') {
-                    await sendStreaming();
-                } else {
-                    await sendClassic();
-                }
+                await sendClassic();
                 // Save conversation snapshot to backend (fire-and-forget)
                 persistConversation();
             } finally {
@@ -1704,6 +1702,21 @@
         checkDriveStatus();
         setInterval(checkDriveStatus, 30000); // Re-check every 30s
         inputEl.focus();
+
+        // Backend health check on load - shows immediately if something's broken
+        (async function checkBackendHealth() {
+            try {
+                const r = await fetch('/api/health', { cache: 'no-store' });
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                const h = await r.json();
+                if (!h.anthropic_configured) {
+                    addMessage('bot', '⚠️ אזהרה: ANTHROPIC_API_KEY לא מוגדר ב-Coolify. הסוכן לא יענה.', true);
+                }
+                console.log('Backend health:', h);
+            } catch (e) {
+                addMessage('bot', `⚠️ הבקאנד לא מגיב: ${e.message}\n\nאולי ה-deploy בקוליפי עוד לא הסתיים? נסה לרענן בעוד דקה.`, true);
+            }
+        })();
     </script>
 </body>
 </html>
