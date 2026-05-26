@@ -221,6 +221,191 @@
         }
         .topbar-title .breadcrumb-sep { color: var(--muted); opacity: 0.5; }
 
+        /* ============ PROJECTS PANEL ============ */
+        .projects-section {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 12px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--sidebar-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 12px 12px 6px;
+            font-weight: 600;
+        }
+        .icon-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--sidebar-muted);
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            padding: 0;
+            font-size: 14px;
+            line-height: 1;
+        }
+        .icon-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+        .icon-btn svg { width: 12px; height: 12px; }
+
+        .project-item {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 2px;
+        }
+        .project-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            color: var(--sidebar-text);
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .project-header:hover { background: rgba(255,255,255,0.04); }
+        .project-header.active { background: var(--accent-soft); color: var(--accent); }
+        .project-icon { font-size: 14px; flex-shrink: 0; }
+        .project-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .project-toggle {
+            font-size: 9px;
+            color: var(--sidebar-muted);
+            transition: transform 0.15s;
+        }
+        .project-item.expanded .project-toggle { transform: rotate(90deg); }
+
+        .project-actions {
+            display: none;
+            gap: 4px;
+            margin-right: auto;
+        }
+        .project-header:hover .project-actions { display: inline-flex; }
+        .project-actions .icon-btn { width: 18px; height: 18px; font-size: 11px; }
+
+        .project-convs {
+            display: none;
+            padding: 2px 4px 4px 20px;
+            flex-direction: column;
+            gap: 1px;
+        }
+        .project-item.expanded .project-convs { display: flex; }
+        .conv-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            color: var(--sidebar-muted);
+            font-size: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.12s;
+            overflow: hidden;
+        }
+        .conv-item:hover { background: rgba(255,255,255,0.04); color: var(--sidebar-text); }
+        .conv-item.active { color: var(--accent); background: var(--accent-soft); }
+        .conv-item .conv-icon { flex-shrink: 0; opacity: 0.6; }
+        .conv-item .conv-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .conv-item .conv-agent {
+            font-size: 9px;
+            opacity: 0.5;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .conv-item .conv-delete {
+            opacity: 0;
+            background: transparent;
+            border: none;
+            color: var(--error);
+            cursor: pointer;
+            padding: 0 4px;
+            font-size: 13px;
+            line-height: 1;
+        }
+        .conv-item:hover .conv-delete { opacity: 0.6; }
+        .conv-item .conv-delete:hover { opacity: 1; }
+        .empty-msg {
+            font-size: 11px;
+            color: var(--sidebar-muted);
+            padding: 6px 10px;
+            opacity: 0.6;
+            font-style: italic;
+        }
+
+        /* Modal for new project */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-strong);
+            border-radius: 14px;
+            padding: 24px;
+            min-width: 380px;
+            max-width: 90vw;
+        }
+        .modal h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        .modal label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted-strong);
+            margin-bottom: 6px;
+            margin-top: 12px;
+        }
+        .modal input, .modal select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-strong);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .modal input:focus, .modal select:focus { outline: none; border-color: var(--accent); }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .modal-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-strong);
+            background: transparent;
+            color: var(--text);
+        }
+        .modal-btn:hover { background: var(--bg-input); }
+        .modal-btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+        .modal-btn.primary:hover { background: #2563eb; }
+
         /* "New chat" button in topbar */
         .new-chat-btn {
             background: var(--bg-elevated);
@@ -834,6 +1019,14 @@
                 </div>
             </div>
 
+            <div class="section-header">
+                <span>פרויקטים</span>
+                <button class="icon-btn" id="newProjectBtn" title="פרויקט חדש">+</button>
+            </div>
+            <div class="projects-section" id="projectsSection">
+                <div class="empty-msg">טוען...</div>
+            </div>
+
             <div class="nav-section-label">סוכנים</div>
 
             <a class="nav-item active" data-agent="accounting">
@@ -997,6 +1190,26 @@
         </main>
     </div>
 
+    <!-- New Project Modal -->
+    <div class="modal-overlay" id="newProjectModal">
+        <div class="modal">
+            <h2>פרויקט חדש</h2>
+            <label for="projNameInput">שם הפרויקט</label>
+            <input type="text" id="projNameInput" placeholder="לדוגמה: חשבונאות 2026" maxlength="60">
+            <label for="projIconInput">אייקון (אופציונלי)</label>
+            <input type="text" id="projIconInput" placeholder="📁 💼 🚀 ⭐ 💡" maxlength="4">
+            <label for="projAgentSelect">סוכן ברירת מחדל</label>
+            <select id="projAgentSelect">
+                <option value="claude">קלוד (כללי)</option>
+                <option value="accounting">סוכן חשבונאות</option>
+            </select>
+            <div class="modal-actions">
+                <button class="modal-btn" id="projCancelBtn">ביטול</button>
+                <button class="modal-btn primary" id="projCreateBtn">צור פרויקט</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ============ AUTH GUARD ============
         if (sessionStorage.getItem('pc_authenticated') !== 'true') {
@@ -1069,6 +1282,12 @@
         let lastEventAt = 0;
         let watchdogTimer = null;
         let conversationId = null; // Persistent conversation ID
+
+        // Projects state
+        let projects = [];
+        let activeProjectId = 'default';
+        let expandedProjectIds = new Set();  // which projects are visually open in sidebar
+        let projectConvsCache = {}; // projectId -> [conv summaries]
 
         function setWaitingMode(waiting) {
             isWaiting = waiting;
@@ -1427,19 +1646,21 @@
 
         async function persistConversation() {
             try {
-                await fetch('/api/conversations/save', {
+                const r = await fetch('/api/conversations/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         id: conversationId,
                         agent: currentAgent,
+                        project_id: activeProjectId,
                         messages: conversation,
                     }),
-                }).then(r => r.json()).then(d => {
-                    if (d && d.id) conversationId = d.id;
                 });
+                const d = await r.json();
+                if (d && d.id) conversationId = d.id;
+                // Refresh sidebar so the new/updated conversation appears
+                refreshProjectsSidebar();
             } catch (e) {
-                // Non-fatal
                 console.warn('Persist failed:', e.message);
             }
         }
@@ -1813,9 +2034,274 @@
             conversationId = null;
             showWelcomeMessage(currentAgent);
             inputEl.focus();
+            // Refresh project sidebar so the next save shows up
+            setTimeout(refreshProjectsSidebar, 100);
         }
 
-        function switchAgent(agentName) {
+        // ============ PROJECTS ============
+        async function loadProjectsFromServer() {
+            try {
+                const r = await fetch('/api/projects', { cache: 'no-store' });
+                if (!r.ok) return;
+                const data = await r.json();
+                projects = data.projects || [];
+                activeProjectId = data.active_project || 'default';
+                // Auto-expand active project
+                expandedProjectIds.add(activeProjectId);
+            } catch (e) { console.warn('loadProjects failed:', e); }
+        }
+
+        async function loadConversationsForProject(projectId) {
+            try {
+                const r = await fetch(`/api/conversations?project_id=${encodeURIComponent(projectId)}`, { cache: 'no-store' });
+                if (!r.ok) return [];
+                const data = await r.json();
+                projectConvsCache[projectId] = data.conversations || [];
+                return projectConvsCache[projectId];
+            } catch (e) { return []; }
+        }
+
+        function renderProjectsSidebar() {
+            const container = document.getElementById('projectsSection');
+            if (!container) return;
+            if (projects.length === 0) {
+                container.innerHTML = '<div class="empty-msg">אין פרויקטים</div>';
+                return;
+            }
+            container.innerHTML = '';
+            for (const proj of projects) {
+                const item = document.createElement('div');
+                item.className = 'project-item' + (expandedProjectIds.has(proj.id) ? ' expanded' : '');
+                item.dataset.projectId = proj.id;
+
+                const header = document.createElement('div');
+                header.className = 'project-header' + (proj.id === activeProjectId ? ' active' : '');
+                header.innerHTML = `
+                    <span class="project-toggle">▶</span>
+                    <span class="project-icon">${escapeHtml(proj.icon || '📁')}</span>
+                    <span class="project-name">${escapeHtml(proj.name)}</span>
+                    <div class="project-actions">
+                        <button class="icon-btn" title="שיחה חדשה" data-action="new-chat">+</button>
+                        ${proj.id !== 'default' ? '<button class="icon-btn" title="מחק" data-action="delete">×</button>' : ''}
+                    </div>
+                `;
+                header.addEventListener('click', (e) => {
+                    if (e.target.dataset.action === 'new-chat') {
+                        e.stopPropagation();
+                        switchProject(proj.id);
+                        startNewChat();
+                        return;
+                    }
+                    if (e.target.dataset.action === 'delete') {
+                        e.stopPropagation();
+                        deleteProject(proj.id, proj.name);
+                        return;
+                    }
+                    // Default: toggle expand + set active
+                    if (expandedProjectIds.has(proj.id)) {
+                        if (proj.id === activeProjectId) {
+                            expandedProjectIds.delete(proj.id);
+                        } else {
+                            switchProject(proj.id);
+                        }
+                    } else {
+                        expandedProjectIds.add(proj.id);
+                        switchProject(proj.id);
+                    }
+                    renderProjectsSidebar();
+                });
+
+                item.appendChild(header);
+
+                const convsList = document.createElement('div');
+                convsList.className = 'project-convs';
+                convsList.id = `convs-${proj.id}`;
+                convsList.innerHTML = '<div class="empty-msg">טוען שיחות...</div>';
+                item.appendChild(convsList);
+
+                container.appendChild(item);
+
+                // Load conversations for expanded projects
+                if (expandedProjectIds.has(proj.id)) {
+                    loadConversationsForProject(proj.id).then((list) => {
+                        renderConversationsForProject(proj.id, list);
+                    });
+                }
+            }
+        }
+
+        function renderConversationsForProject(projectId, convs) {
+            const el = document.getElementById(`convs-${projectId}`);
+            if (!el) return;
+            if (!convs || convs.length === 0) {
+                el.innerHTML = '<div class="empty-msg">אין שיחות עדיין</div>';
+                return;
+            }
+            el.innerHTML = '';
+            for (const c of convs) {
+                const div = document.createElement('div');
+                div.className = 'conv-item' + (c.id === conversationId ? ' active' : '');
+                div.dataset.convId = c.id;
+                const agentLabel = c.agent === 'claude' ? 'קלוד' : 'חשבונאות';
+                div.innerHTML = `
+                    <span class="conv-icon">💬</span>
+                    <span class="conv-title" title="${escapeHtml(c.title)}">${escapeHtml(c.title)}</span>
+                    <span class="conv-agent">${agentLabel}</span>
+                    <button class="conv-delete" title="מחק שיחה">×</button>
+                `;
+                div.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('conv-delete')) {
+                        e.stopPropagation();
+                        deleteConversation(c.id);
+                        return;
+                    }
+                    loadConversationById(c.id);
+                });
+                el.appendChild(div);
+            }
+        }
+
+        async function refreshProjectsSidebar() {
+            // Re-load conversations for all expanded projects
+            for (const pid of expandedProjectIds) {
+                const list = await loadConversationsForProject(pid);
+                renderConversationsForProject(pid, list);
+            }
+        }
+
+        async function switchProject(projectId) {
+            if (isWaiting) return;
+            const proj = projects.find(p => p.id === projectId);
+            if (!proj) return;
+            activeProjectId = projectId;
+            // Tell backend
+            fetch('/api/projects/active', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: projectId }),
+            }).catch(() => {});
+            // Switch the chat to the project's default agent (if different)
+            if (proj.default_agent && proj.default_agent !== currentAgent) {
+                // We can't call switchAgent because we don't want it to load conversation; instead set state manually
+                currentAgent = proj.default_agent;
+                applyAgentBodyClass(currentAgent);
+                document.querySelectorAll('.nav-item[data-agent]').forEach(el => {
+                    el.classList.toggle('active', el.dataset.agent === currentAgent);
+                });
+                document.getElementById('topbarTitle').textContent = AGENTS[currentAgent].title;
+                inputEl.placeholder = AGENTS[currentAgent].placeholder;
+            }
+            renderProjectsSidebar();
+            // Load the latest conversation for this project (if any)
+            const convs = await loadConversationsForProject(projectId);
+            if (convs && convs.length > 0) {
+                await loadConversationById(convs[0].id);
+            } else {
+                conversation = [];
+                conversationId = null;
+                showWelcomeMessage(currentAgent);
+            }
+        }
+
+        async function loadConversationById(convId) {
+            if (isWaiting) return;
+            try {
+                const r = await fetch(`/api/conversations/${encodeURIComponent(convId)}`);
+                if (!r.ok) return;
+                const rec = await r.json();
+                conversation = rec.messages || [];
+                conversationId = rec.id;
+                // Make sure agent matches
+                if (rec.agent && rec.agent !== currentAgent) {
+                    currentAgent = rec.agent;
+                    applyAgentBodyClass(currentAgent);
+                    document.querySelectorAll('.nav-item[data-agent]').forEach(el => {
+                        el.classList.toggle('active', el.dataset.agent === currentAgent);
+                    });
+                    document.getElementById('topbarTitle').textContent = AGENTS[currentAgent].title;
+                    inputEl.placeholder = AGENTS[currentAgent].placeholder;
+                }
+                renderHistoricalConversation(conversation);
+                // Mark active in sidebar
+                renderProjectsSidebar();
+            } catch (e) {
+                console.warn('loadConversationById failed:', e);
+            }
+        }
+
+        async function deleteConversation(convId) {
+            if (!confirm('למחוק את השיחה הזו? לא ניתן לבטל.')) return;
+            try {
+                await fetch(`/api/conversations/${encodeURIComponent(convId)}`, { method: 'DELETE' });
+                if (convId === conversationId) {
+                    conversation = [];
+                    conversationId = null;
+                    showWelcomeMessage(currentAgent);
+                }
+                await refreshProjectsSidebar();
+            } catch (e) { console.warn(e); }
+        }
+
+        async function deleteProject(projectId, projectName) {
+            if (!confirm(`למחוק את הפרויקט "${projectName}" וכל השיחות שבו? לא ניתן לבטל.`)) return;
+            try {
+                const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' });
+                if (!r.ok) {
+                    alert('שגיאה במחיקה');
+                    return;
+                }
+                const data = await r.json();
+                projects = data.projects || [];
+                if (activeProjectId === projectId) {
+                    activeProjectId = 'default';
+                    expandedProjectIds.add('default');
+                    await switchProject('default');
+                }
+                renderProjectsSidebar();
+            } catch (e) { console.warn(e); }
+        }
+
+        // Modal handling for new project
+        function openNewProjectModal() {
+            document.getElementById('projNameInput').value = '';
+            document.getElementById('projIconInput').value = '';
+            document.getElementById('projAgentSelect').value = 'claude';
+            document.getElementById('newProjectModal').classList.add('visible');
+            setTimeout(() => document.getElementById('projNameInput').focus(), 50);
+        }
+        function closeNewProjectModal() {
+            document.getElementById('newProjectModal').classList.remove('visible');
+        }
+        async function createProjectFromModal() {
+            const name = document.getElementById('projNameInput').value.trim();
+            const icon = document.getElementById('projIconInput').value.trim();
+            const default_agent = document.getElementById('projAgentSelect').value;
+            if (!name) {
+                document.getElementById('projNameInput').focus();
+                return;
+            }
+            try {
+                const r = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, icon: icon || undefined, default_agent }),
+                });
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    alert('שגיאה: ' + (err.error || 'לא ידוע'));
+                    return;
+                }
+                const data = await r.json();
+                projects = data.projects;
+                expandedProjectIds.add(data.project.id);
+                closeNewProjectModal();
+                await switchProject(data.project.id);
+            } catch (e) {
+                alert('שגיאת חיבור: ' + describeError(e));
+            }
+        }
+
+        async function switchAgent(agentName) {
             if (!AGENTS[agentName] || isWaiting) return;
             currentAgent = agentName;
             applyAgentBodyClass(agentName);
@@ -1828,10 +2314,17 @@
             // Update topbar title
             document.getElementById('topbarTitle').textContent = AGENTS[agentName].title;
 
-            // Reset state & try to restore last conversation for this agent
+            // Reset state. Within the current project, try to find a recent conversation
+            // for this agent and resume it; otherwise show welcome.
             conversation = [];
             conversationId = null;
-            loadLastConversation(agentName);
+            const convs = await loadConversationsForProject(activeProjectId);
+            const latestForAgent = (convs || []).find(c => c.agent === agentName);
+            if (latestForAgent) {
+                await loadConversationById(latestForAgent.id);
+            } else {
+                showWelcomeMessage(agentName);
+            }
 
             // Update input placeholder
             inputEl.placeholder = AGENTS[agentName].placeholder;
@@ -1850,12 +2343,47 @@
         // "+ שיחה חדשה" button
         document.getElementById('newChatBtn').addEventListener('click', startNewChat);
 
+        // Projects: + new project button + modal handlers
+        document.getElementById('newProjectBtn').addEventListener('click', openNewProjectModal);
+        document.getElementById('projCancelBtn').addEventListener('click', closeNewProjectModal);
+        document.getElementById('projCreateBtn').addEventListener('click', createProjectFromModal);
+        document.getElementById('newProjectModal').addEventListener('click', (e) => {
+            if (e.target.id === 'newProjectModal') closeNewProjectModal();
+        });
+        document.getElementById('projNameInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') createProjectFromModal();
+            else if (e.key === 'Escape') closeNewProjectModal();
+        });
+
         // ============ INIT ============
         applyAgentBodyClass(currentAgent);
         checkDriveStatus();
-        setInterval(checkDriveStatus, 30000); // Re-check every 30s
-        // Restore last conversation for the default agent (or show welcome)
-        loadLastConversation(currentAgent);
+        setInterval(checkDriveStatus, 30000);
+
+        // Bootstrap: load projects, render sidebar, then load active project's latest conversation
+        (async function bootstrap() {
+            await loadProjectsFromServer();
+            // Default agent comes from active project
+            const activeProj = projects.find(p => p.id === activeProjectId) || projects[0];
+            if (activeProj) {
+                currentAgent = activeProj.default_agent || 'claude';
+                applyAgentBodyClass(currentAgent);
+                document.querySelectorAll('.nav-item[data-agent]').forEach(el => {
+                    el.classList.toggle('active', el.dataset.agent === currentAgent);
+                });
+                document.getElementById('topbarTitle').textContent = AGENTS[currentAgent].title;
+                inputEl.placeholder = AGENTS[currentAgent].placeholder;
+            }
+            renderProjectsSidebar();
+            // Load latest conversation for active project (if any)
+            const convs = await loadConversationsForProject(activeProjectId);
+            if (convs && convs.length > 0) {
+                await loadConversationById(convs[0].id);
+            } else {
+                showWelcomeMessage(currentAgent);
+            }
+        })();
+
         inputEl.focus();
 
         // Backend health check on load - shows immediately if something's broken

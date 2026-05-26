@@ -1283,10 +1283,131 @@ app.get('/api/health', (req, res) => {
 });
 
 // ============================================================
+// PROJECTS API (logical grouping of conversations)
+// ============================================================
+const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
+const DEFAULT_PROJECT = {
+    id: 'default',
+    name: 'כללי',
+    icon: '⭐',
+    default_agent: 'claude',
+    created_at: '2026-01-01T00:00:00.000Z',
+};
+
+function loadProjects() {
+    try {
+        if (fs.existsSync(PROJECTS_FILE)) {
+            const data = JSON.parse(fs.readFileSync(PROJECTS_FILE, 'utf8'));
+            if (Array.isArray(data.projects) && data.projects.length > 0) return data;
+        }
+    } catch (e) { console.warn('loadProjects failed:', e.message); }
+    // Bootstrap with default
+    const initial = { projects: [DEFAULT_PROJECT], active_project: 'default' };
+    saveProjects(initial);
+    return initial;
+}
+
+function saveProjects(data) {
+    fs.writeFileSync(PROJECTS_FILE, JSON.stringify(data, null, 2));
+}
+
+function makeProjectId(name) {
+    // Take Hebrew/English-friendly slug from name, plus random suffix
+    const slug = String(name || '').slice(0, 30).replace(/[^a-zA-Z0-9֐-׿_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'project';
+    const rand = Math.random().toString(36).slice(2, 6);
+    return `${slug}-${rand}`;
+}
+
+app.get('/api/projects', (req, res) => {
+    res.json(loadProjects());
+});
+
+app.post('/api/projects', (req, res) => {
+    try {
+        const { name, icon, default_agent } = req.body;
+        if (!name || typeof name !== 'string' || !name.trim()) {
+            return res.status(400).json({ error: 'name is required' });
+        }
+        const data = loadProjects();
+        const id = makeProjectId(name);
+        const newProj = {
+            id,
+            name: name.trim().slice(0, 60),
+            icon: (icon && icon.slice(0, 4)) || '📁',
+            default_agent: default_agent === 'accounting' ? 'accounting' : 'claude',
+            created_at: new Date().toISOString(),
+        };
+        data.projects.push(newProj);
+        saveProjects(data);
+        res.json({ project: newProj, projects: data.projects });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/projects/:id', (req, res) => {
+    try {
+        const data = loadProjects();
+        const proj = data.projects.find(p => p.id === req.params.id);
+        if (!proj) return res.status(404).json({ error: 'project not found' });
+        if (req.body.name !== undefined) proj.name = String(req.body.name).trim().slice(0, 60);
+        if (req.body.icon !== undefined) proj.icon = String(req.body.icon).slice(0, 4);
+        if (req.body.default_agent !== undefined) proj.default_agent = req.body.default_agent === 'accounting' ? 'accounting' : 'claude';
+        saveProjects(data);
+        res.json({ project: proj, projects: data.projects });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/projects/:id', (req, res) => {
+    try {
+        if (req.params.id === 'default') return res.status(400).json({ error: 'cannot delete default project' });
+        const data = loadProjects();
+        data.projects = data.projects.filter(p => p.id !== req.params.id);
+        if (data.active_project === req.params.id) data.active_project = 'default';
+        saveProjects(data);
+
+        // Also delete the project's conversations
+        try {
+            const files = fs.readdirSync(CONVERSATIONS_DIR).filter(f => f.endsWith('.json'));
+            for (const f of files) {
+                try {
+                    const rec = JSON.parse(fs.readFileSync(path.join(CONVERSATIONS_DIR, f), 'utf8'));
+                    if (rec.project_id === req.params.id) {
+                        fs.unlinkSync(path.join(CONVERSATIONS_DIR, f));
+                    }
+                } catch {}
+            }
+        } catch {}
+
+        res.json({ deleted: true, projects: data.projects });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/projects/active', (req, res) => {
+    try {
+        const { id } = req.body;
+        const data = loadProjects();
+        if (!data.projects.find(p => p.id === id)) return res.status(404).json({ error: 'project not found' });
+        data.active_project = id;
+        saveProjects(data);
+        res.json({ active_project: id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============================================================
 // CONVERSATIONS API (history + Drive sync)
 // ============================================================
 const CONVERSATIONS_DIR = path.join(DATA_DIR, 'conversations');
 if (!fs.existsSync(CONVERSATIONS_DIR)) fs.mkdirSync(CONVERSATIONS_DIR, { recursive: true });
+
+// Initialize default project on startup
+try { loadProjects(); } catch {}
 
 function makeConversationId() {
     const now = new Date();
@@ -1337,19 +1458,21 @@ function conversationToMarkdown(record) {
 // Save / update a conversation. Idempotent by id.
 app.post('/api/conversations/save', async (req, res) => {
     try {
-        let { id, agent, messages } = req.body;
+        let { id, agent, messages, project_id } = req.body;
         if (!Array.isArray(messages)) return res.status(400).json({ error: 'messages array required' });
         if (!id) id = makeConversationId();
+        if (!project_id) project_id = 'default';
 
         const filePath = conversationFilePath(id);
         const existing = fs.existsSync(filePath)
             ? JSON.parse(fs.readFileSync(filePath, 'utf8'))
-            : { id, agent: agent || 'claude', created_at: new Date().toISOString() };
+            : { id, agent: agent || 'claude', project_id, created_at: new Date().toISOString() };
 
         const record = {
             ...existing,
             id,
             agent: agent || existing.agent,
+            project_id: project_id || existing.project_id || 'default',
             messages,
             updated_at: new Date().toISOString(),
             message_count: messages.length,
@@ -1361,7 +1484,7 @@ app.post('/api/conversations/save', async (req, res) => {
         // Best-effort: also sync to Google Drive (fire-and-forget)
         syncConversationToDrive(record).catch((e) => console.warn('Drive sync failed:', e.message));
 
-        res.json({ id, saved: true, title: record.title });
+        res.json({ id, saved: true, title: record.title, project_id: record.project_id });
     } catch (err) {
         console.error('Save conv error:', err);
         res.status(500).json({ error: err.message });
@@ -1384,21 +1507,26 @@ function computeConvTitle(messages) {
 
 app.get('/api/conversations', (req, res) => {
     try {
+        const filterProject = req.query.project_id || null; // optional filter
+        const filterAgent = req.query.agent || null;        // optional filter
         const files = fs.readdirSync(CONVERSATIONS_DIR).filter((f) => f.endsWith('.json'));
-        const summaries = files.map((f) => {
+        let summaries = files.map((f) => {
             try {
                 const rec = JSON.parse(fs.readFileSync(path.join(CONVERSATIONS_DIR, f), 'utf8'));
                 return {
                     id: rec.id,
                     title: rec.title || 'שיחה',
                     agent: rec.agent,
+                    project_id: rec.project_id || 'default',
                     updated_at: rec.updated_at,
                     message_count: rec.message_count || (rec.messages || []).length,
                 };
             } catch { return null; }
         }).filter(Boolean);
+        if (filterProject) summaries = summaries.filter(s => s.project_id === filterProject);
+        if (filterAgent) summaries = summaries.filter(s => s.agent === filterAgent);
         summaries.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
-        res.json({ conversations: summaries.slice(0, 50) });
+        res.json({ conversations: summaries.slice(0, 200) });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1453,10 +1581,42 @@ async function getOrCreateConvDriveFolder() {
 }
 
 const _convDriveFileIds = new Map(); // conv id -> drive file id
+const _projectDriveFolderIds = new Map(); // project id -> drive folder id (subfolder of Portal-Conversations)
+
+async function getOrCreateProjectSubfolder(projectId) {
+    if (!projectId || projectId === 'default') return await getOrCreateConvDriveFolder();
+    if (_projectDriveFolderIds.has(projectId)) return _projectDriveFolderIds.get(projectId);
+    const root = await getOrCreateConvDriveFolder();
+    if (!root) return null;
+    const drive = getDrive();
+    const safeName = String(projectId).replace(/'/g, "\\'");
+    const list = await drive.files.list({
+        q: `name='${safeName}' and '${root}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        fields: 'files(id, name)',
+        pageSize: 1,
+    });
+    let folderId;
+    if (list.data.files.length > 0) {
+        folderId = list.data.files[0].id;
+    } else {
+        const created = await drive.files.create({
+            requestBody: {
+                name: projectId,
+                mimeType: 'application/vnd.google-apps.folder',
+                parents: [root],
+            },
+            fields: 'id',
+        });
+        folderId = created.data.id;
+    }
+    _projectDriveFolderIds.set(projectId, folderId);
+    return folderId;
+}
 
 async function syncConversationToDrive(record) {
     if (!loadTokens()) return; // No Drive auth, skip silently
-    const folderId = await getOrCreateConvDriveFolder();
+    // Save into a project-specific subfolder for organization
+    const folderId = await getOrCreateProjectSubfolder(record.project_id || 'default');
     if (!folderId) return;
     const drive = getDrive();
     const fileName = `${record.id}.md`;
@@ -1466,7 +1626,6 @@ async function syncConversationToDrive(record) {
 
     let driveFileId = _convDriveFileIds.get(record.id);
     if (!driveFileId) {
-        // Search by name in folder
         const res = await drive.files.list({
             q: `name='${fileName}' and '${folderId}' in parents and trashed=false`,
             fields: 'files(id, name)',
