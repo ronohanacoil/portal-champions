@@ -327,13 +327,231 @@
         .message em { color: var(--muted); font-style: italic; }
         .message ul, .message ol { margin: 8px 0; padding-right: 24px; }
         .message li { margin: 4px 0; }
+        .message h1, .message h2, .message h3 { margin: 12px 0 6px; font-weight: 700; }
+        .message h1 { font-size: 20px; }
+        .message h2 { font-size: 17px; }
+        .message h3 { font-size: 15px; }
+        .message a { color: var(--accent); text-decoration: underline; }
+        .message blockquote {
+            border-right: 3px solid var(--accent);
+            padding: 4px 12px;
+            margin: 8px 0;
+            background: rgba(0,0,0,0.03);
+            color: var(--muted);
+        }
+        .message hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
         .message code {
             background: rgba(0,0,0,0.06);
             padding: 2px 6px;
             border-radius: 4px;
-            font-family: 'SF Mono', Monaco, monospace;
+            font-family: 'SF Mono', Monaco, Consolas, 'Courier New', monospace;
+            font-size: 13px;
+            direction: ltr;
+            unicode-bidi: embed;
+        }
+        .message pre {
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 14px 16px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 10px 0;
+            direction: ltr;
+            text-align: left;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .message pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+            display: block;
+            font-family: 'SF Mono', Monaco, Consolas, 'Courier New', monospace;
+        }
+        .message.user pre { background: rgba(255,255,255,0.08); color: #e6e6e6; }
+        .message.user code { background: rgba(255,255,255,0.12); color: #e6e6e6; }
+        .message img.msg-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            margin: 6px 0;
+            cursor: zoom-in;
+            display: block;
+        }
+        .message table {
+            border-collapse: collapse;
+            margin: 8px 0;
             font-size: 13px;
         }
+        .message th, .message td {
+            border: 1px solid var(--border);
+            padding: 6px 10px;
+            text-align: right;
+        }
+        .message th { background: rgba(0,0,0,0.04); font-weight: 700; }
+
+        /* Streaming cursor */
+        .streaming-cursor::after {
+            content: '▍';
+            display: inline-block;
+            animation: blink 1s steps(2, start) infinite;
+            color: var(--accent);
+            margin-right: 2px;
+            font-weight: 400;
+        }
+        @keyframes blink { to { visibility: hidden; } }
+
+        /* Tool call chips */
+        .tool-chip {
+            background: rgba(59,130,246,0.08);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin: 6px 0;
+            font-size: 12px;
+            color: var(--muted);
+            align-self: flex-start;
+            max-width: 75%;
+            cursor: pointer;
+            transition: all 0.15s;
+            animation: slideIn 0.25s ease-out;
+            font-family: 'SF Mono', Monaco, monospace;
+            direction: ltr;
+            text-align: left;
+        }
+        .tool-chip:hover { background: rgba(59,130,246,0.12); }
+        .tool-chip-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #2563eb;
+        }
+        .tool-chip-icon {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #2563eb;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .tool-chip.done .tool-chip-icon {
+            animation: none;
+            border-top-color: #2563eb;
+            background: #2563eb;
+        }
+        .tool-chip.error .tool-chip-icon {
+            border-color: var(--error);
+            background: var(--error);
+            animation: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .tool-chip-body {
+            display: none;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0,0,0,0.06);
+            max-height: 260px;
+            overflow: auto;
+            white-space: pre-wrap;
+            color: #555;
+            font-size: 11px;
+        }
+        .tool-chip.expanded .tool-chip-body { display: block; }
+
+        /* Attachment preview row above input */
+        .attachment-row {
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px 32px 0;
+            background: var(--card);
+        }
+        .attachment-row.visible { display: flex; }
+        .attachment-thumb {
+            position: relative;
+            width: 72px;
+            height: 72px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1.5px solid var(--border);
+            background: #f5f5f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .attachment-thumb img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .attachment-thumb .filetype {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            padding: 4px;
+            overflow: hidden;
+            word-break: break-all;
+        }
+        .attachment-thumb .remove-btn {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .attachment-thumb .remove-btn:hover { background: rgba(0,0,0,0.9); }
+
+        /* Clip / attach button */
+        .attach-btn {
+            background: transparent;
+            color: var(--muted);
+            border: 1.5px solid var(--border);
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .attach-btn:hover { background: #f0f0f3; color: var(--text); border-color: var(--text); }
+        .attach-btn svg { width: 20px; height: 20px; }
+        .attach-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Drag-over highlight */
+        .chat-container.drag-over {
+            background: rgba(59,130,246,0.06);
+        }
+        .chat-container.drag-over::after {
+            content: '📎 שחרר כאן כדי לצרף';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--card);
+            padding: 20px 40px;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+            border: 2px dashed var(--accent);
+            pointer-events: none;
+            z-index: 10;
+        }
+        .chat-container { position: relative; }
 
         .typing-indicator {
             display: inline-flex;
@@ -565,7 +783,14 @@
                     </div>
                 </div>
 
+                <div class="attachment-row" id="attachmentRow"></div>
                 <div class="input-area">
+                    <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.csv,.json,.md,.log" style="display:none">
+                    <button class="attach-btn" id="attachBtn" title="צרף קובץ / תמונה">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                    </button>
                     <textarea
                         class="chat-input"
                         id="chatInput"
@@ -641,22 +866,122 @@
         const messagesEl = document.getElementById('messages');
         const inputEl = document.getElementById('chatInput');
         const sendBtn = document.getElementById('sendBtn');
+        const attachBtn = document.getElementById('attachBtn');
+        const fileInput = document.getElementById('fileInput');
+        const attachmentRow = document.getElementById('attachmentRow');
+        const chatContainer = document.querySelector('.chat-container');
 
-        // Conversation history (for context)
+        // State
         let conversation = [];
         let isWaiting = false;
+        let pendingAttachments = []; // [{name, mimeType, dataBase64, dataUrl}]
+
+        // ============ MARKDOWN RENDERING ============
+        // Lightweight, safe markdown -> HTML. Handles common cases without
+        // pulling in a CDN. Escapes HTML first, then applies block/inline rules.
+        function escapeHtml(s) {
+            return s.replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+        }
+
+        function renderMarkdown(text) {
+            if (!text) return '';
+            // Extract fenced code blocks first to protect their contents
+            const codeBlocks = [];
+            text = text.replace(/```(\w+)?\n?([\s\S]*?)```/g, (_, lang, code) => {
+                const idx = codeBlocks.length;
+                codeBlocks.push({ lang: lang || '', code: code.replace(/\n$/, '') });
+                return ` CODEBLOCK_${idx} `;
+            });
+
+            // Escape everything else
+            let html = escapeHtml(text);
+
+            // Headers
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+            // Horizontal rules
+            html = html.replace(/^---+$/gm, '<hr>');
+
+            // Block quotes
+            html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+            // Lists - unordered
+            html = html.replace(/(^|\n)((?:[*\-+] .+\n?)+)/g, (_, pre, block) => {
+                const items = block.trim().split(/\n/).map(l => l.replace(/^[*\-+] /, '')).map(t => `<li>${t}</li>`).join('');
+                return `${pre}<ul>${items}</ul>`;
+            });
+
+            // Lists - ordered
+            html = html.replace(/(^|\n)((?:\d+\. .+\n?)+)/g, (_, pre, block) => {
+                const items = block.trim().split(/\n/).map(l => l.replace(/^\d+\. /, '')).map(t => `<li>${t}</li>`).join('');
+                return `${pre}<ol>${items}</ol>`;
+            });
+
+            // Bold, italic, inline code, links
+            html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/(?<!\w)\*([^*\n]+?)\*(?!\w)/g, '<em>$1</em>');
+            html = html.replace(/`([^`\n]+?)`/g, '<code>$1</code>');
+            html = html.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+            // Paragraphs / line breaks (only outside block elements)
+            html = html.replace(/\n\n+/g, '</p><p>');
+            html = '<p>' + html + '</p>';
+            html = html.replace(/<p>(\s*<(h[1-3]|ul|ol|hr|blockquote|pre))/g, '$1');
+            html = html.replace(/(<\/(h[1-3]|ul|ol|blockquote|pre|hr)>)\s*<\/p>/g, '$1');
+            html = html.replace(/<p>\s*<\/p>/g, '');
+            html = html.replace(/\n/g, '<br>');
+
+            // Restore code blocks
+            html = html.replace(/ CODEBLOCK_(\d+) /g, (_, i) => {
+                const { lang, code } = codeBlocks[parseInt(i, 10)];
+                const langAttr = lang ? ` class="language-${escapeHtml(lang)}"` : '';
+                return `<pre><code${langAttr}>${escapeHtml(code)}</code></pre>`;
+            });
+
+            return html;
+        }
+
+        // ============ MESSAGE RENDERING ============
+        function renderContentBlocks(content) {
+            // Content can be a string OR an array of blocks {type: 'text'|'image', ...}
+            if (typeof content === 'string') return renderMarkdown(content);
+            if (!Array.isArray(content)) return '';
+            return content.map(block => {
+                if (block.type === 'text') return renderMarkdown(block.text || '');
+                if (block.type === 'image') {
+                    const src = block.source?.type === 'base64'
+                        ? `data:${block.source.media_type};base64,${block.source.data}`
+                        : (block.source?.url || '');
+                    return `<img class="msg-image" src="${src}" alt="attached image" onclick="window.open(this.src)">`;
+                }
+                return '';
+            }).join('');
+        }
 
         function addMessage(role, content, isError = false) {
             const div = document.createElement('div');
             div.className = `message ${role}${isError ? ' error' : ''}`;
-            // Basic markdown-like formatting
-            const formatted = content
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                .replace(/`(.+?)`/g, '<code>$1</code>');
-            div.innerHTML = formatted;
+            if (typeof content === 'string') {
+                div.innerHTML = renderMarkdown(content);
+            } else {
+                div.innerHTML = renderContentBlocks(content);
+            }
             messagesEl.appendChild(div);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            scrollToBottom();
+            return div;
+        }
+
+        function scrollToBottom() {
+            // Use rAF to ensure DOM updated first
+            requestAnimationFrame(() => {
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            });
         }
 
         function showTyping() {
@@ -665,7 +990,7 @@
             div.id = 'typingIndicator';
             div.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
             messagesEl.appendChild(div);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            scrollToBottom();
         }
 
         function hideTyping() {
@@ -673,61 +998,269 @@
             if (el) el.remove();
         }
 
+        function addToolChip(toolId, toolName, input) {
+            const div = document.createElement('div');
+            div.className = 'tool-chip';
+            div.dataset.toolId = toolId;
+            div.innerHTML = `
+                <div class="tool-chip-header">
+                    <span class="tool-chip-icon"></span>
+                    <span>${escapeHtml(toolName)}</span>
+                </div>
+                <div class="tool-chip-body"></div>
+            `;
+            const body = div.querySelector('.tool-chip-body');
+            body.textContent = `Input:\n${JSON.stringify(input, null, 2)}`;
+            div.addEventListener('click', () => div.classList.toggle('expanded'));
+            messagesEl.appendChild(div);
+            scrollToBottom();
+            return div;
+        }
+
+        function finishToolChip(toolId, result) {
+            const chip = messagesEl.querySelector(`.tool-chip[data-tool-id="${toolId}"]`);
+            if (!chip) return;
+            const isError = result && (result.error || result.exit_code > 0);
+            chip.classList.add(isError ? 'error' : 'done');
+            const body = chip.querySelector('.tool-chip-body');
+            const resultStr = JSON.stringify(result, null, 2);
+            body.textContent = body.textContent + '\n\nResult:\n' + (resultStr.length > 4000 ? resultStr.slice(0, 4000) + '\n... [truncated]' : resultStr);
+        }
+
+        // ============ ATTACHMENTS ============
+        async function addAttachment(file) {
+            // Read file as base64
+            const dataUrl = await new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(r.result);
+                r.onerror = reject;
+                r.readAsDataURL(file);
+            });
+            const base64 = dataUrl.split(',')[1];
+            pendingAttachments.push({
+                name: file.name,
+                mimeType: file.type || 'application/octet-stream',
+                size: file.size,
+                dataBase64: base64,
+                dataUrl,
+            });
+            renderAttachmentRow();
+        }
+
+        function removeAttachment(idx) {
+            pendingAttachments.splice(idx, 1);
+            renderAttachmentRow();
+        }
+
+        function renderAttachmentRow() {
+            attachmentRow.innerHTML = '';
+            if (pendingAttachments.length === 0) {
+                attachmentRow.classList.remove('visible');
+                return;
+            }
+            attachmentRow.classList.add('visible');
+            pendingAttachments.forEach((att, idx) => {
+                const thumb = document.createElement('div');
+                thumb.className = 'attachment-thumb';
+                if (att.mimeType.startsWith('image/')) {
+                    thumb.innerHTML = `<img src="${att.dataUrl}" alt="${escapeHtml(att.name)}">`;
+                } else {
+                    const ext = att.name.split('.').pop().toUpperCase();
+                    thumb.innerHTML = `<div class="filetype">📄 ${escapeHtml(ext)}<br><span style="font-size:9px">${escapeHtml(att.name.slice(0, 12))}</span></div>`;
+                }
+                const btn = document.createElement('button');
+                btn.className = 'remove-btn';
+                btn.textContent = '×';
+                btn.onclick = (e) => { e.stopPropagation(); removeAttachment(idx); };
+                thumb.appendChild(btn);
+                attachmentRow.appendChild(thumb);
+            });
+        }
+
+        // ============ SEND MESSAGE ============
         async function sendMessage() {
             const text = inputEl.value.trim();
-            if (!text || isWaiting) return;
+            if ((!text && pendingAttachments.length === 0) || isWaiting) return;
 
-            // Add user message
-            addMessage('user', text);
-            conversation.push({ role: 'user', content: text });
+            // Build user message content. If there are attachments, use blocks; otherwise plain string.
+            let userContent;
+            if (pendingAttachments.length > 0) {
+                userContent = [];
+                for (const att of pendingAttachments) {
+                    if (att.mimeType.startsWith('image/')) {
+                        userContent.push({
+                            type: 'image',
+                            source: { type: 'base64', media_type: att.mimeType, data: att.dataBase64 },
+                        });
+                    } else {
+                        // Non-image: include the text content if small text/csv/json,
+                        // otherwise just mention the file name. Keep it simple for now.
+                        try {
+                            const decoded = atob(att.dataBase64);
+                            if (decoded.length < 200000 && /^(text|application\/(json|xml|csv|x-yaml))/.test(att.mimeType) ||
+                                /\.(txt|csv|json|md|log|yaml|yml)$/i.test(att.name)) {
+                                userContent.push({ type: 'text', text: `📎 קובץ מצורף: ${att.name}\n\n\`\`\`\n${decoded}\n\`\`\`` });
+                                continue;
+                            }
+                        } catch {}
+                        userContent.push({ type: 'text', text: `📎 קובץ מצורף: ${att.name} (${att.mimeType}, ${att.size} bytes)` });
+                    }
+                }
+                if (text) userContent.push({ type: 'text', text });
+            } else {
+                userContent = text;
+            }
+
+            addMessage('user', userContent);
+            conversation.push({ role: 'user', content: userContent });
             inputEl.value = '';
             inputEl.style.height = 'auto';
+            pendingAttachments = [];
+            renderAttachmentRow();
 
             isWaiting = true;
             sendBtn.disabled = true;
             inputEl.disabled = true;
-            showTyping();
+            attachBtn.disabled = true;
 
-            try {
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: conversation,
-                        agent_type: currentAgent,
-                    }),
-                });
-
-                hideTyping();
-
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({ error: 'שגיאת שרת' }));
-                    addMessage('bot', `שגיאה: ${err.error || 'לא ידוע'}`, true);
-                    isWaiting = false;
-                    sendBtn.disabled = false;
-                    inputEl.disabled = false;
-                    inputEl.focus();
-                    return;
-                }
-
-                const data = await res.json();
-                addMessage('bot', data.message || '(אין תוכן)');
-
-                // Update conversation from server (includes tool calls etc.)
-                if (data.conversation) {
-                    conversation = data.conversation;
-                }
-            } catch (err) {
-                hideTyping();
-                addMessage('bot', `שגיאת חיבור: ${err.message}`, true);
+            // Pick endpoint: streaming for "claude" agent, classic for accounting
+            if (currentAgent === 'claude') {
+                await sendStreaming();
+            } else {
+                await sendClassic();
             }
 
             isWaiting = false;
             sendBtn.disabled = false;
             inputEl.disabled = false;
+            attachBtn.disabled = false;
             inputEl.focus();
         }
 
+        async function sendClassic() {
+            showTyping();
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: conversation, agent_type: currentAgent }),
+                });
+                hideTyping();
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ error: 'שגיאת שרת' }));
+                    addMessage('bot', `שגיאה: ${err.error || 'לא ידוע'}`, true);
+                    return;
+                }
+                const data = await res.json();
+                addMessage('bot', data.message || '(אין תוכן)');
+                if (data.conversation) conversation = data.conversation;
+            } catch (err) {
+                hideTyping();
+                addMessage('bot', `שגיאת חיבור: ${err.message}`, true);
+            }
+        }
+
+        async function sendStreaming() {
+            showTyping();
+            let currentBotDiv = null;
+            let currentBotText = '';
+
+            const ensureBotDiv = () => {
+                if (!currentBotDiv) {
+                    hideTyping();
+                    currentBotDiv = document.createElement('div');
+                    currentBotDiv.className = 'message bot streaming-cursor';
+                    messagesEl.appendChild(currentBotDiv);
+                }
+                return currentBotDiv;
+            };
+
+            const finalizeBotDiv = () => {
+                if (currentBotDiv) {
+                    currentBotDiv.classList.remove('streaming-cursor');
+                    currentBotDiv = null;
+                    currentBotText = '';
+                }
+            };
+
+            try {
+                const res = await fetch('/api/chat/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: conversation, agent_type: currentAgent }),
+                });
+                if (!res.ok || !res.body) {
+                    hideTyping();
+                    const err = await res.json().catch(() => ({ error: 'שגיאת שרת' }));
+                    addMessage('bot', `שגיאה: ${err.error || 'לא ידוע'}`, true);
+                    return;
+                }
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+
+                    // Parse SSE: events separated by \n\n, lines starting with "event:" / "data:"
+                    let sepIdx;
+                    while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+                        const rawEvent = buffer.slice(0, sepIdx);
+                        buffer = buffer.slice(sepIdx + 2);
+                        let eventType = 'message';
+                        let dataStr = '';
+                        for (const line of rawEvent.split('\n')) {
+                            if (line.startsWith('event:')) eventType = line.slice(6).trim();
+                            else if (line.startsWith('data:')) dataStr += line.slice(5).trim();
+                        }
+                        if (!dataStr) continue;
+                        let data;
+                        try { data = JSON.parse(dataStr); } catch { continue; }
+                        handleStreamEvent(eventType, data, ensureBotDiv, finalizeBotDiv);
+                    }
+                }
+                finalizeBotDiv();
+            } catch (err) {
+                hideTyping();
+                finalizeBotDiv();
+                addMessage('bot', `שגיאת חיבור: ${err.message}`, true);
+            }
+        }
+
+        function handleStreamEvent(eventType, data, ensureBotDiv, finalizeBotDiv) {
+            if (eventType === 'text_delta') {
+                const div = ensureBotDiv();
+                // Accumulate text, re-render markdown each delta (cheap enough for normal sizes)
+                // We track plain text on the element via dataset
+                div.dataset.text = (div.dataset.text || '') + data.text;
+                div.innerHTML = renderMarkdown(div.dataset.text);
+                div.classList.add('streaming-cursor');
+                scrollToBottom();
+            } else if (eventType === 'tool_use') {
+                // Finalize any in-progress text bubble first so chip lands below it
+                finalizeBotDiv();
+                addToolChip(data.id, data.name, data.input);
+            } else if (eventType === 'tool_result') {
+                finishToolChip(data.id, data.result);
+                scrollToBottom();
+            } else if (eventType === 'iteration') {
+                // Could show subtle indicator; for now ignore
+            } else if (eventType === 'done') {
+                finalizeBotDiv();
+                if (data.conversation) conversation = data.conversation;
+                if (data.note) addMessage('bot', `_${data.note}_`, true);
+                hideTyping();
+            } else if (eventType === 'error') {
+                finalizeBotDiv();
+                hideTyping();
+                addMessage('bot', `שגיאה: ${data.message}`, true);
+            }
+        }
+
+        // ============ EVENT BINDINGS ============
         sendBtn.addEventListener('click', sendMessage);
 
         inputEl.addEventListener('keydown', (e) => {
@@ -741,6 +1274,59 @@
         inputEl.addEventListener('input', () => {
             inputEl.style.height = 'auto';
             inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
+        });
+
+        // Attach button -> trigger file input
+        attachBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async (e) => {
+            for (const f of e.target.files) {
+                if (f.size > 20 * 1024 * 1024) {
+                    addMessage('bot', `הקובץ "${f.name}" גדול מדי (מקסימום 20MB).`, true);
+                    continue;
+                }
+                await addAttachment(f);
+            }
+            fileInput.value = '';
+        });
+
+        // Drag-and-drop on chat container
+        ['dragenter', 'dragover'].forEach(evt =>
+            chatContainer.addEventListener(evt, (e) => {
+                e.preventDefault();
+                if (e.dataTransfer.types.includes('Files')) chatContainer.classList.add('drag-over');
+            })
+        );
+        ['dragleave', 'drop'].forEach(evt =>
+            chatContainer.addEventListener(evt, (e) => {
+                e.preventDefault();
+                if (evt === 'dragleave' && e.target !== chatContainer) return;
+                chatContainer.classList.remove('drag-over');
+            })
+        );
+        chatContainer.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            chatContainer.classList.remove('drag-over');
+            for (const f of e.dataTransfer.files) {
+                if (f.size > 20 * 1024 * 1024) {
+                    addMessage('bot', `הקובץ "${f.name}" גדול מדי (מקסימום 20MB).`, true);
+                    continue;
+                }
+                await addAttachment(f);
+            }
+        });
+
+        // Paste images directly into input
+        inputEl.addEventListener('paste', async (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (const item of items) {
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file && file.size < 20 * 1024 * 1024) {
+                        await addAttachment(file);
+                    }
+                }
+            }
         });
 
         // ============ AGENT SWITCHING ============
@@ -760,20 +1346,19 @@
             },
             claude: {
                 title: 'קלוד',
-                welcome: `<strong>היי רון! 🤖</strong><br><br>
-                    אני <strong>קלוד</strong> — סוכן AI כללי לכל מה שאתה צריך.<br><br>
-                    בשונה מסוכן החשבונאות, אני לא מתמחה במשהו ספציפי — <strong>אתה יכול לבקש ממני כל דבר</strong>:
+                welcome: `<strong>היי רון! 👋</strong><br><br>
+                    אני <strong>קלוד</strong> — אותו קלוד שאתה מכיר מ-Cowork, רק שעכשיו אני כאן באתר שלך.<br><br>
+                    <strong>אני יכול לעשות כל דבר שאני עושה ב-Cowork:</strong>
                     <ul>
-                        <li>💡 רעיונות לעסק או לפיתוח מוצר</li>
-                        <li>✍️ כתיבת טקסטים, מיילים, פוסטים</li>
-                        <li>🧠 ניתוח בעיות וסיעור מוחות</li>
-                        <li>📊 ניתוח נתונים והסברים</li>
-                        <li>💻 קוד, פתרון באגים, סקריפטים</li>
-                        <li>🎯 תכנון אסטרטגי</li>
-                        <li>❓ שאלות כלליות על כל נושא</li>
+                        <li>📸 לראות תמונות שאתה מצרף (גרור-ושחרר, הדבק, או 📎)</li>
+                        <li>💻 להריץ פקודות bash וסקריפטים</li>
+                        <li>📝 לקרוא, לכתוב ולערוך קבצים</li>
+                        <li>🌐 לגלוש באינטרנט ולהביא מידע מ-URLs</li>
+                        <li>📁 לעבוד עם ה-Google Drive שלך</li>
+                        <li>🧠 לחשוב, לתכנן, לכתוב, לקודד, לנתח</li>
                     </ul>
-                    <em>שאל אותי כל דבר — אני כאן כדי לעזור.</em>`,
-                placeholder: 'דבר איתי על כל דבר...',
+                    <em>שלח לי תמונה, בקש ממני להריץ קוד, או פשוט דבר איתי. אני זורם בשבילך בזמן אמת.</em>`,
+                placeholder: 'שלח הודעה, גרור תמונה, או הדבק...',
             },
         };
 

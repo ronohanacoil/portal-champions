@@ -9,17 +9,26 @@ const fs = require('fs');
 const { google } = require('googleapis');
 const Anthropic = require('@anthropic-ai/sdk');
 const XLSX = require('xlsx');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const https = require('https');
+const http = require('http');
+const execAsync = promisify(exec);
 
 // ============================================================
 // CONFIG
 // ============================================================
 const PORT = process.env.PORT || 80;
 const DATA_DIR = process.env.DATA_DIR || '/app/data';
+const WORK_DIR = process.env.WORK_DIR || '/app/work';
 const TOKENS_FILE = path.join(DATA_DIR, 'tokens.json');
 
-// Ensure data directory exists
+// Ensure data + work directories exist
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+if (!fs.existsSync(WORK_DIR)) {
+    fs.mkdirSync(WORK_DIR, { recursive: true });
 }
 
 // Required env vars check
@@ -325,6 +334,254 @@ const AGENT_TOOLS = [
 ];
 
 // ============================================================
+// CLAUDE-AGENT EXTRA TOOLS (Cowork-like capabilities)
+// ============================================================
+// These tools are available to the "general Claude" agent on top of AGENT_TOOLS.
+// They give it bash, file ops, and web fetch — the same toolbox Cowork uses.
+const CLAUDE_EXTRA_TOOLS = [
+    {
+        name: 'bash',
+        description:
+            'Run a shell command inside the sandbox container. Returns stdout, stderr, and exit code. The working directory is /app/work (a writable scratch space). Use for: scripts, data processing, installing packages (pip/npm), running Python/Node code, etc. Network is allowed.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                command: { type: 'string', description: 'Shell command to execute (bash -c)' },
+                timeout_ms: { type: 'number', description: 'Timeout in milliseconds. Default 60000 (60s). Max 300000 (5min).' },
+                cwd: { type: 'string', description: 'Optional working directory. Defaults to /app/work.' },
+            },
+            required: ['command'],
+        },
+    },
+    {
+        name: 'read_local_file',
+        description:
+            'Read a file from the local sandbox (typically /app/work/). Returns text content. For binary files, use bash with base64.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                file_path: { type: 'string', description: 'Absolute path or path relative to /app/work/' },
+                offset: { type: 'number', description: 'Optional: line number to start reading from (1-indexed)' },
+                limit: { type: 'number', description: 'Optional: max lines to read' },
+            },
+            required: ['file_path'],
+        },
+    },
+    {
+        name: 'write_local_file',
+        description:
+            'Write or overwrite a file in the local sandbox (typically /app/work/). Creates parent directories if needed.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                file_path: { type: 'string' },
+                content: { type: 'string' },
+            },
+            required: ['file_path', 'content'],
+        },
+    },
+    {
+        name: 'edit_local_file',
+        description:
+            'Replace exact text in a local file. old_string must match exactly once (or use replace_all=true). For new files use write_local_file.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                file_path: { type: 'string' },
+                old_string: { type: 'string' },
+                new_string: { type: 'string' },
+                replace_all: { type: 'boolean', description: 'Replace all occurrences (default false)' },
+            },
+            required: ['file_path', 'old_string', 'new_string'],
+        },
+    },
+    {
+        name: 'list_local_dir',
+        description: 'List files and subdirectories of a local directory (typically under /app/work/).',
+        input_schema: {
+            type: 'object',
+            properties: {
+                dir_path: { type: 'string', description: 'Absolute path. Defaults to /app/work/.' },
+            },
+        },
+    },
+    {
+        name: 'web_fetch',
+        description:
+            'Fetch the contents of a URL over HTTP/HTTPS. Returns the body as text (or base64 if binary). Useful for reading public web pages, APIs, raw files.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string', description: 'Full URL with scheme (https://...)' },
+                method: { type: 'string', description: 'HTTP method (default GET)' },
+                headers: { type: 'object', description: 'Optional request headers as key/value' },
+                body: { type: 'string', description: 'Optional request body (for POST/PUT)' },
+            },
+            required: ['url'],
+        },
+    },
+];
+
+// Resolve a user-supplied path safely - default to /app/work/ if relative
+function resolveSandboxPath(filePath) {
+    if (!filePath) return WORK_DIR;
+    if (path.isAbsolute(filePath)) return filePath;
+    return path.join(WORK_DIR, filePath);
+}
+
+// ============================================================
+// CLAUDE-AGENT TOOL IMPLEMENTATIONS
+// ============================================================
+async function executeClaudeExtraTool(toolName, input) {
+    console.log(`🔧 [claude] Tool call: ${toolName}`, JSON.stringify(input).slice(0, 200));
+
+    try {
+        switch (toolName) {
+            case 'bash': {
+                const timeout = Math.min(Math.max(parseInt(input.timeout_ms || 60000, 10), 1000), 300000);
+                const cwd = input.cwd ? resolveSandboxPath(input.cwd) : WORK_DIR;
+                try {
+                    const { stdout, stderr } = await execAsync(input.command, {
+                        cwd,
+                        timeout,
+                        maxBuffer: 10 * 1024 * 1024, // 10MB
+                        shell: '/bin/sh',
+                    });
+                    return {
+                        stdout: (stdout || '').slice(0, 50000),
+                        stderr: (stderr || '').slice(0, 10000),
+                        exit_code: 0,
+                        cwd,
+                    };
+                } catch (err) {
+                    return {
+                        stdout: (err.stdout || '').slice(0, 50000),
+                        stderr: (err.stderr || err.message || '').slice(0, 10000),
+                        exit_code: err.code || 1,
+                        cwd,
+                        error: err.killed ? 'Command timed out' : undefined,
+                    };
+                }
+            }
+
+            case 'read_local_file': {
+                const filePath = resolveSandboxPath(input.file_path);
+                if (!fs.existsSync(filePath)) return { error: `File not found: ${filePath}` };
+                let content = fs.readFileSync(filePath, 'utf8');
+                if (input.offset || input.limit) {
+                    const lines = content.split('\n');
+                    const start = Math.max(0, (parseInt(input.offset, 10) || 1) - 1);
+                    const end = input.limit ? start + parseInt(input.limit, 10) : lines.length;
+                    content = lines.slice(start, end).join('\n');
+                }
+                // Limit size to keep token usage reasonable
+                if (content.length > 200000) {
+                    content = content.slice(0, 200000) + '\n... [truncated]';
+                }
+                return { file_path: filePath, content, bytes: Buffer.byteLength(content, 'utf8') };
+            }
+
+            case 'write_local_file': {
+                const filePath = resolveSandboxPath(input.file_path);
+                fs.mkdirSync(path.dirname(filePath), { recursive: true });
+                fs.writeFileSync(filePath, input.content, 'utf8');
+                return { success: true, file_path: filePath, bytes: Buffer.byteLength(input.content, 'utf8') };
+            }
+
+            case 'edit_local_file': {
+                const filePath = resolveSandboxPath(input.file_path);
+                if (!fs.existsSync(filePath)) return { error: `File not found: ${filePath}` };
+                let content = fs.readFileSync(filePath, 'utf8');
+                if (input.replace_all) {
+                    if (!content.includes(input.old_string)) return { error: 'old_string not found' };
+                    content = content.split(input.old_string).join(input.new_string);
+                } else {
+                    const idx = content.indexOf(input.old_string);
+                    if (idx === -1) return { error: 'old_string not found' };
+                    const second = content.indexOf(input.old_string, idx + 1);
+                    if (second !== -1) return { error: 'old_string is not unique. Use replace_all=true or provide more context.' };
+                    content = content.slice(0, idx) + input.new_string + content.slice(idx + input.old_string.length);
+                }
+                fs.writeFileSync(filePath, content, 'utf8');
+                return { success: true, file_path: filePath };
+            }
+
+            case 'list_local_dir': {
+                const dirPath = input.dir_path ? resolveSandboxPath(input.dir_path) : WORK_DIR;
+                if (!fs.existsSync(dirPath)) return { error: `Directory not found: ${dirPath}` };
+                const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+                return {
+                    dir_path: dirPath,
+                    entries: entries.map((e) => {
+                        const full = path.join(dirPath, e.name);
+                        let stat = null;
+                        try { stat = fs.statSync(full); } catch {}
+                        return {
+                            name: e.name,
+                            type: e.isDirectory() ? 'dir' : (e.isFile() ? 'file' : 'other'),
+                            size: stat ? stat.size : null,
+                            modified: stat ? stat.mtime.toISOString() : null,
+                        };
+                    }),
+                };
+            }
+
+            case 'web_fetch': {
+                return await new Promise((resolve) => {
+                    try {
+                        const url = new URL(input.url);
+                        const lib = url.protocol === 'https:' ? https : http;
+                        const req = lib.request(
+                            {
+                                method: input.method || 'GET',
+                                hostname: url.hostname,
+                                port: url.port || (url.protocol === 'https:' ? 443 : 80),
+                                path: url.pathname + url.search,
+                                headers: { 'User-Agent': 'PortalChampionsBot/1.0', ...(input.headers || {}) },
+                                timeout: 30000,
+                            },
+                            (res) => {
+                                const chunks = [];
+                                res.on('data', (c) => chunks.push(c));
+                                res.on('end', () => {
+                                    const buf = Buffer.concat(chunks);
+                                    const contentType = res.headers['content-type'] || '';
+                                    const isText = /text|json|xml|javascript|html/i.test(contentType);
+                                    let body;
+                                    if (isText) {
+                                        body = buf.toString('utf8').slice(0, 200000);
+                                    } else {
+                                        body = `[binary: ${buf.length} bytes, content-type: ${contentType}]`;
+                                    }
+                                    resolve({
+                                        status: res.statusCode,
+                                        headers: res.headers,
+                                        body,
+                                        bytes: buf.length,
+                                    });
+                                });
+                            }
+                        );
+                        req.on('error', (err) => resolve({ error: err.message }));
+                        req.on('timeout', () => { req.destroy(); resolve({ error: 'Request timed out' }); });
+                        if (input.body) req.write(input.body);
+                        req.end();
+                    } catch (err) {
+                        resolve({ error: err.message });
+                    }
+                });
+            }
+
+            default:
+                return { error: `Unknown Claude tool: ${toolName}` };
+        }
+    } catch (err) {
+        console.error(`Claude tool error (${toolName}):`, err.message);
+        return { error: err.message };
+    }
+}
+
+// ============================================================
 // TOOL IMPLEMENTATIONS
 // ============================================================
 async function executeToolCall(toolName, input) {
@@ -552,6 +809,10 @@ async function executeToolCall(toolName, input) {
             }
 
             default:
+                // Try the Claude extra tools as fallback
+                if (CLAUDE_EXTRA_TOOLS.some((t) => t.name === toolName)) {
+                    return await executeClaudeExtraTool(toolName, input);
+                }
                 return { error: `Unknown tool: ${toolName}` };
         }
     } catch (err) {
@@ -621,7 +882,8 @@ async function loadSystemPrompt() {
 // EXPRESS APP
 // ============================================================
 const app = express();
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Serve static HTML files
 app.use(express.static(__dirname, { extensions: ['html'] }));
@@ -667,15 +929,51 @@ app.get('/api/google/status', (req, res) => {
 
 // ----- Chat Endpoint -----
 // General-purpose Claude system prompt (for "Claude" agent - no accounting specifics)
-const GENERAL_CLAUDE_PROMPT = `You are Claude, a general-purpose AI assistant for Ron Ohana.
+const GENERAL_CLAUDE_PROMPT = `You are Claude, a fully-capable AI agent for Ron Ohana — the same Claude that runs in Cowork. You can do anything Ron throws at you.
 
-You are NOT specialized in accounting - you are a general assistant who can help with anything: writing, brainstorming, coding, analysis, strategy, explanations, creative work, problem-solving, and casual conversation.
+# Your toolbox
 
-You have access to Google Drive tools (find_folder, list_folder_contents, read_pdf_invoice, read_xlsx, write_xlsx_row, rename_file, create_folder, copy_drive_file, reset_yearly_xlsx) and can use them when relevant - but you should only use them if the user explicitly asks for something Drive-related.
+## Sandbox tools (your scratch space is /app/work/)
+- **bash**: Run shell commands. Network is allowed. Use this for scripts, data processing, installing packages with npm/pip, running Python/Node code, anything you'd run in a terminal.
+- **read_local_file / write_local_file / edit_local_file / list_local_dir**: Standard file operations in the sandbox.
+- **web_fetch**: Fetch any public URL — web pages, APIs, raw files. Returns text or info about binary.
 
-Hebrew is the primary working language (Ron speaks Hebrew), but you can respond in any language.
+## Google Drive tools (Ron's actual files)
+- find_folder, list_folder_contents, read_pdf_invoice, read_xlsx, write_xlsx_row, rename_file, create_folder, copy_drive_file, reset_yearly_xlsx
+- Use these when Ron asks about files in his Drive (חשבונאות, חשבוניות, אקסל, etc.).
 
-Be warm, helpful, accurate, and concise. Treat Ron like a smart business partner - explain things at the right level, push back when you disagree, ask clarifying questions when needed.`;
+## Vision
+- Ron can upload images directly into the chat. They arrive as image content blocks. Look at them carefully and describe / use what you see.
+
+# How to work
+
+- Be proactive. Don't ask permission to use a tool when the path is obvious — just do it and report results.
+- For multi-step tasks: think step by step, run tools, show intermediate progress, then summarize.
+- When writing code or files: actually create them with write_local_file or bash, don't just paste them in the chat.
+- For long/expensive operations: keep Ron in the loop with short status updates between tool calls.
+
+# Style
+
+- Hebrew is Ron's primary language. Respond in Hebrew unless he writes to you in another language.
+- Be warm but precise. No fluff, no apologies, no over-formatting.
+- Use Markdown freely: code blocks for code, lists when they help, **bold** for emphasis.
+- Push back when you disagree, ask clarifying questions only when truly stuck.
+- Treat Ron like a smart business partner who can handle the truth.`;
+
+// Pick the right tool set for the agent type
+function getToolsForAgent(agentType) {
+    if (agentType === 'claude') {
+        // Claude gets ALL tools - Cowork-like full capability
+        return [...AGENT_TOOLS, ...CLAUDE_EXTRA_TOOLS];
+    }
+    return AGENT_TOOLS;
+}
+
+// Pick the right system prompt
+async function getSystemPromptForAgent(agentType) {
+    if (agentType === 'claude') return GENERAL_CLAUDE_PROMPT;
+    return await loadSystemPrompt();
+}
 
 app.post('/api/chat', async (req, res) => {
     const { messages, agent_type } = req.body;
@@ -685,18 +983,13 @@ app.post('/api/chat', async (req, res) => {
     }
 
     try {
-        // Pick system prompt based on agent
-        let systemPrompt;
-        if (agent_type === 'claude') {
-            systemPrompt = GENERAL_CLAUDE_PROMPT;
-        } else {
-            systemPrompt = await loadSystemPrompt();  // accounting from Drive
-        }
+        const systemPrompt = await getSystemPromptForAgent(agent_type);
+        const tools = getToolsForAgent(agent_type);
 
         // Run agent loop
         let conversation = [...messages];
         let iterations = 0;
-        const MAX_ITERATIONS = 10;
+        const MAX_ITERATIONS = agent_type === 'claude' ? 20 : 10;
 
         while (iterations < MAX_ITERATIONS) {
             iterations++;
@@ -705,7 +998,7 @@ app.post('/api/chat', async (req, res) => {
                 model: 'claude-sonnet-4-6',
                 max_tokens: 4096,
                 system: systemPrompt,
-                tools: AGENT_TOOLS,
+                tools,
                 messages: conversation,
             });
 
@@ -760,6 +1053,138 @@ app.post('/api/chat', async (req, res) => {
     } catch (err) {
         console.error('Chat error:', err);
         return res.status(500).json({ error: err.message });
+    }
+});
+
+// ============================================================
+// STREAMING CHAT (Server-Sent Events)
+// ============================================================
+// Emits events as the conversation unfolds, so the frontend can render
+// text deltas, tool calls, and tool results in real time (Cowork-like UX).
+//
+// Event types:
+//   text_delta    {text}             - incremental assistant text
+//   tool_use      {name, input}      - assistant decided to call a tool
+//   tool_result   {name, result}     - tool finished, here's the output
+//   iteration     {n, max}           - new agent loop iteration
+//   done          {iterations, conversation} - final completion
+//   error         {message}          - something went wrong
+app.post('/api/chat/stream', async (req, res) => {
+    const { messages, agent_type } = req.body;
+
+    if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: 'messages array is required' });
+    }
+
+    // SSE setup
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no', // disable nginx/proxy buffering
+    });
+    res.flushHeaders();
+    // Initial comment to defeat early proxy buffering
+    res.write(': stream-open\n\n');
+
+    const sendEvent = (type, data) => {
+        try {
+            res.write(`event: ${type}\n`);
+            res.write(`data: ${JSON.stringify(data)}\n\n`);
+        } catch (e) {
+            console.warn('SSE write failed:', e.message);
+        }
+    };
+
+    let clientGone = false;
+    req.on('close', () => { clientGone = true; });
+
+    // Keepalive ping every 15s so reverse proxies don't drop us
+    const keepalive = setInterval(() => {
+        if (clientGone) { clearInterval(keepalive); return; }
+        try { res.write(': ping\n\n'); } catch {}
+    }, 15000);
+    res.on('close', () => clearInterval(keepalive));
+
+    try {
+        const systemPrompt = await getSystemPromptForAgent(agent_type);
+        const tools = getToolsForAgent(agent_type);
+
+        let conversation = [...messages];
+        let iterations = 0;
+        const MAX_ITERATIONS = agent_type === 'claude' ? 20 : 10;
+
+        while (iterations < MAX_ITERATIONS && !clientGone) {
+            iterations++;
+            sendEvent('iteration', { n: iterations, max: MAX_ITERATIONS });
+
+            // Use the streaming API
+            const stream = await anthropic.messages.stream({
+                model: 'claude-sonnet-4-6',
+                max_tokens: 4096,
+                system: systemPrompt,
+                tools,
+                messages: conversation,
+            });
+
+            // Forward text deltas in real time
+            stream.on('text', (textDelta) => {
+                if (!clientGone) sendEvent('text_delta', { text: textDelta });
+            });
+
+            // Wait for the full message
+            const finalMessage = await stream.finalMessage();
+            conversation.push({ role: 'assistant', content: finalMessage.content });
+
+            const toolUses = finalMessage.content.filter((c) => c.type === 'tool_use');
+
+            // Notify about each tool call
+            for (const tu of toolUses) {
+                sendEvent('tool_use', { id: tu.id, name: tu.name, input: tu.input });
+            }
+
+            if (finalMessage.stop_reason === 'end_turn' ||
+                finalMessage.stop_reason === 'stop_sequence' ||
+                toolUses.length === 0) {
+                sendEvent('done', {
+                    iterations,
+                    stop_reason: finalMessage.stop_reason,
+                    conversation,
+                });
+                res.end();
+                return;
+            }
+
+            // Execute tools and feed results back
+            const toolResults = [];
+            for (const tu of toolUses) {
+                if (clientGone) break;
+                const result = await executeToolCall(tu.name, tu.input);
+                sendEvent('tool_result', { id: tu.id, name: tu.name, result });
+                toolResults.push({
+                    type: 'tool_result',
+                    tool_use_id: tu.id,
+                    content: JSON.stringify(result).slice(0, 50000),
+                });
+            }
+            conversation.push({ role: 'user', content: toolResults });
+        }
+
+        if (!clientGone) {
+            sendEvent('done', {
+                iterations,
+                stop_reason: 'max_iterations',
+                conversation,
+                note: 'הסוכן הגיע למקסימום שלבים',
+            });
+            res.end();
+        }
+    } catch (err) {
+        console.error('Stream chat error:', err);
+        if (!clientGone) {
+            sendEvent('error', { message: err.message });
+            res.end();
+        }
     }
 });
 
