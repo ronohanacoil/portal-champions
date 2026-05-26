@@ -221,6 +221,36 @@
         }
         .topbar-title .breadcrumb-sep { color: var(--muted); opacity: 0.5; }
 
+        /* "New chat" button in topbar */
+        .new-chat-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-strong);
+            color: var(--muted-strong);
+            padding: 4px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-right: 12px;
+            transition: all 0.15s;
+        }
+        .new-chat-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+        .new-chat-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* History loaded indicator */
+        .history-loaded {
+            text-align: center;
+            font-size: 11px;
+            color: var(--muted);
+            padding: 12px 0;
+            border-bottom: 1px dashed var(--border);
+            margin-bottom: 12px;
+            opacity: 0.75;
+        }
+
         .agent-status {
             display: inline-flex;
             align-items: center;
@@ -884,9 +914,15 @@
                     <span class="breadcrumb-sep">/</span>
                     <h1 id="topbarTitle">סוכן החשבונאות</h1>
                 </div>
-                <div class="agent-status" id="agentStatus">
-                    <span class="status-dot yellow"></span>
-                    <span>בודק חיבור...</span>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <button class="new-chat-btn" id="newChatBtn" title="התחל שיחה חדשה">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                        שיחה חדשה
+                    </button>
+                    <div class="agent-status" id="agentStatus">
+                        <span class="status-dot yellow"></span>
+                        <span>בודק חיבור...</span>
+                    </div>
                 </div>
             </header>
 
@@ -1361,14 +1397,15 @@
             pendingAttachments = [];
             renderAttachmentRow();
 
+            // Save the user turn IMMEDIATELY so refresh-during-hang doesn't lose it
+            persistConversation();
+
             setWaitingMode(true);
             startWatchdog();
 
-            // Both agents use the proven /api/chat endpoint.
-            // Streaming endpoint exists but is disabled until proxy issue resolved.
             try {
                 await sendClassic();
-                // Save conversation snapshot to backend (fire-and-forget)
+                // Save again after assistant response
                 persistConversation();
             } finally {
                 stopWatchdog();
@@ -1662,6 +1699,95 @@
             document.body.classList.add(`agent-${agentName}`);
         }
 
+        function showWelcomeMessage(agentName) {
+            messagesEl.innerHTML = '';
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'message bot';
+            welcomeDiv.innerHTML = AGENTS[agentName].welcome;
+            messagesEl.appendChild(welcomeDiv);
+        }
+
+        // Render a saved conversation: walk through messages and recreate the chat UI.
+        // - User messages (text/image content): show as user bubbles
+        // - Assistant messages: text blocks → bot bubbles, tool_use → "done" chips
+        // - User messages of tool_result: skip (internal feedback to the model)
+        function renderHistoricalConversation(messages) {
+            messagesEl.innerHTML = '';
+            for (const msg of messages) {
+                const content = msg.content;
+                if (msg.role === 'user') {
+                    if (Array.isArray(content) && content.length > 0 &&
+                        content.every(b => b && b.type === 'tool_result')) {
+                        continue; // internal, hide
+                    }
+                    addMessage('user', content);
+                } else if (msg.role === 'assistant') {
+                    if (typeof content === 'string') {
+                        addMessage('bot', content);
+                    } else if (Array.isArray(content)) {
+                        let textBuf = '';
+                        for (const block of content) {
+                            if (block.type === 'text') {
+                                textBuf += block.text || '';
+                            } else if (block.type === 'tool_use') {
+                                if (textBuf.trim()) {
+                                    addMessage('bot', textBuf);
+                                    textBuf = '';
+                                }
+                                addToolChip(block.id, block.name, block.input);
+                                const chip = messagesEl.querySelector(`.tool-chip[data-tool-id="${block.id}"]`);
+                                if (chip) chip.classList.add('done');
+                            }
+                        }
+                        if (textBuf.trim()) addMessage('bot', textBuf);
+                    }
+                }
+            }
+            scrollToBottom();
+        }
+
+        // Try to restore the last conversation for the current agent. If none, show welcome.
+        async function loadLastConversation(agentName) {
+            try {
+                const r = await fetch('/api/conversations', { cache: 'no-store' });
+                if (!r.ok) { showWelcomeMessage(agentName); return; }
+                const data = await r.json();
+                const list = data.conversations || [];
+                const latest = list.find(c => c.agent === agentName);
+                if (!latest) { showWelcomeMessage(agentName); return; }
+
+                const r2 = await fetch(`/api/conversations/${encodeURIComponent(latest.id)}`);
+                if (!r2.ok) { showWelcomeMessage(agentName); return; }
+                const rec = await r2.json();
+                if (!rec.messages || rec.messages.length === 0) {
+                    showWelcomeMessage(agentName);
+                    return;
+                }
+
+                conversation = rec.messages;
+                conversationId = rec.id;
+                renderHistoricalConversation(conversation);
+
+                // Subtle indicator above the chat that history was restored
+                const banner = document.createElement('div');
+                banner.className = 'history-loaded';
+                const when = new Date(rec.updated_at).toLocaleString('he-IL');
+                banner.textContent = `↩ נטענה שיחה אחרונה (${rec.message_count || conversation.length} הודעות, עודכן ${when})`;
+                messagesEl.insertBefore(banner, messagesEl.firstChild);
+            } catch (e) {
+                console.warn('Load conversation failed:', e);
+                showWelcomeMessage(agentName);
+            }
+        }
+
+        function startNewChat() {
+            if (isWaiting) return;
+            conversation = [];
+            conversationId = null;
+            showWelcomeMessage(currentAgent);
+            inputEl.focus();
+        }
+
         function switchAgent(agentName) {
             if (!AGENTS[agentName] || isWaiting) return;
             currentAgent = agentName;
@@ -1675,13 +1801,10 @@
             // Update topbar title
             document.getElementById('topbarTitle').textContent = AGENTS[agentName].title;
 
-            // Clear chat & show new welcome
+            // Reset state & try to restore last conversation for this agent
             conversation = [];
-            messagesEl.innerHTML = '';
-            const welcomeDiv = document.createElement('div');
-            welcomeDiv.className = 'message bot';
-            welcomeDiv.innerHTML = AGENTS[agentName].welcome;
-            messagesEl.appendChild(welcomeDiv);
+            conversationId = null;
+            loadLastConversation(agentName);
 
             // Update input placeholder
             inputEl.placeholder = AGENTS[agentName].placeholder;
@@ -1697,10 +1820,15 @@
             el.style.cursor = 'pointer';
         });
 
+        // "+ שיחה חדשה" button
+        document.getElementById('newChatBtn').addEventListener('click', startNewChat);
+
         // ============ INIT ============
         applyAgentBodyClass(currentAgent);
         checkDriveStatus();
         setInterval(checkDriveStatus, 30000); // Re-check every 30s
+        // Restore last conversation for the default agent (or show welcome)
+        loadLastConversation(currentAgent);
         inputEl.focus();
 
         // Backend health check on load - shows immediately if something's broken
