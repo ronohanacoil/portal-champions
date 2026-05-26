@@ -11,20 +11,27 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg: #f5f5f7;
-            --sidebar-bg: #1d1d1f;
-            --sidebar-text: #f5f5f7;
-            --sidebar-muted: #86868b;
-            --accent: #3b82f6;
-            --text: #1d1d1f;
-            --muted: #6e6e73;
-            --border: #e0e0e5;
-            --card: #ffffff;
-            --bot-bubble: #f0f0f3;
-            --user-bubble: #1d1d1f;
-            --success: #2d7a2d;
-            --warning: #b8860b;
-            --error: #c33;
+            /* Cowork-like dark theme */
+            --bg: #1c1c1e;
+            --bg-elevated: #232325;
+            --bg-input: #2a2a2d;
+            --sidebar-bg: #141416;
+            --sidebar-text: #f0f0f0;
+            --sidebar-muted: #8e8e93;
+            --accent: #ff6b35;          /* Cowork-orange send button */
+            --accent-soft: rgba(255,107,53,0.15);
+            --link: #5fa8ff;
+            --text: #f0f0f0;
+            --muted: #8e8e93;
+            --muted-strong: #a8a8af;
+            --border: rgba(255,255,255,0.08);
+            --border-strong: rgba(255,255,255,0.14);
+            --card: #232325;
+            --bot-bubble: transparent;
+            --user-bubble: #2c2c30;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --error: #f87171;
         }
 
         body {
@@ -33,6 +40,8 @@
             color: var(--text);
             min-height: 100vh;
             overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .layout {
@@ -194,16 +203,23 @@
         .main { display: flex; flex-direction: column; overflow: hidden; }
 
         .topbar {
-            background: var(--card);
-            padding: 16px 32px;
+            background: var(--bg);
+            padding: 14px 32px;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            min-height: 56px;
         }
 
-        .topbar-title { display: flex; align-items: center; gap: 12px; }
-        .topbar-title h1 { font-size: 20px; font-weight: 700; }
+        .topbar-title { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted-strong); }
+        .topbar-title h1 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+            letter-spacing: 0.2px;
+        }
+        .topbar-title .breadcrumb-sep { color: var(--muted); opacity: 0.5; }
 
         .agent-status {
             display: inline-flex;
@@ -212,14 +228,14 @@
             padding: 4px 10px;
             border-radius: 20px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 500;
         }
-        .agent-status.connected { background: #f0f9f0; color: var(--success); }
-        .agent-status.disconnected { background: #fef5e7; color: var(--warning); }
+        .agent-status.connected { background: rgba(74,222,128,0.12); color: var(--success); }
+        .agent-status.disconnected { background: rgba(251,191,36,0.12); color: var(--warning); }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
         }
         .status-dot.green { background: var(--success); animation: pulse 2s infinite; }
@@ -227,19 +243,19 @@
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         .connect-banner {
-            background: linear-gradient(90deg, #fff8e1, #fffdf2);
-            border-bottom: 1px solid #ffe082;
-            padding: 14px 32px;
-            font-size: 14px;
-            color: #7a5a00;
+            background: rgba(251,191,36,0.08);
+            border-bottom: 1px solid rgba(251,191,36,0.2);
+            padding: 12px 32px;
+            font-size: 13px;
+            color: var(--warning);
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
         }
         .connect-btn {
-            background: #1d1d1f;
-            color: white;
+            background: var(--accent);
+            color: #fff;
             border: none;
             padding: 8px 16px;
             border-radius: 8px;
@@ -253,20 +269,20 @@
             align-items: center;
             gap: 8px;
         }
-        .connect-btn:hover { background: #000; transform: translateY(-1px); }
+        .connect-btn:hover { background: #ff7a4c; transform: translateY(-1px); }
 
         .success-banner {
-            background: #f0f9f0;
-            border-bottom: 1px solid #c8e6c9;
-            padding: 12px 32px;
-            font-size: 14px;
+            background: rgba(74,222,128,0.08);
+            border-bottom: 1px solid rgba(74,222,128,0.2);
+            padding: 10px 32px;
+            font-size: 13px;
             color: var(--success);
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
         }
-        .close-btn { background: transparent; border: none; cursor: pointer; color: inherit; font-size: 18px; opacity: 0.6; }
+        .close-btn { background: transparent; border: none; cursor: pointer; color: inherit; font-size: 18px; opacity: 0.5; }
         .close-btn:hover { opacity: 1; }
 
         .chat-container {
@@ -319,7 +335,7 @@
             content: 'קלוד';
             display: block;
             font-size: 11px;
-            letter-spacing: 0.6px;
+            letter-spacing: 0.8px;
             text-transform: uppercase;
             color: var(--muted);
             font-weight: 600;
@@ -329,9 +345,9 @@
             content: 'סוכן חשבונאות';
         }
 
-        /* User: subtle pill on the right */
+        /* User: subtle dark pill on the right */
         .message.user {
-            background: #ffffff;
+            background: var(--user-bubble);
             color: var(--text);
             padding: 12px 16px;
             border-radius: 14px;
@@ -339,15 +355,14 @@
             max-width: min(75%, 560px);
             margin-right: 0;
             margin-left: auto;
-            margin-top: 14px;
-            margin-bottom: 14px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            margin-top: 16px;
+            margin-bottom: 16px;
         }
 
         .message.error {
-            background: #fef2f2;
+            background: rgba(248,113,113,0.08);
             color: var(--error);
-            border: 1px solid #fecaca;
+            border: 1px solid rgba(248,113,113,0.25);
             padding: 12px 16px;
             border-radius: 12px;
         }
@@ -357,39 +372,42 @@
         .message em { color: var(--muted); font-style: italic; }
         .message ul, .message ol { margin: 8px 0; padding-right: 24px; }
         .message li { margin: 4px 0; }
-        .message h1, .message h2, .message h3 { margin: 12px 0 6px; font-weight: 700; }
+        .message h1, .message h2, .message h3 { margin: 12px 0 6px; font-weight: 600; color: var(--text); }
         .message h1 { font-size: 20px; }
         .message h2 { font-size: 17px; }
         .message h3 { font-size: 15px; }
-        .message a { color: var(--accent); text-decoration: underline; }
+        .message a { color: var(--link); text-decoration: underline; }
         .message blockquote {
             border-right: 3px solid var(--accent);
-            padding: 4px 12px;
-            margin: 8px 0;
-            background: rgba(0,0,0,0.03);
-            color: var(--muted);
+            padding: 6px 14px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.03);
+            color: var(--muted-strong);
+            border-radius: 4px;
         }
-        .message hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+        .message hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
         .message code {
-            background: rgba(0,0,0,0.06);
+            background: rgba(255,255,255,0.08);
             padding: 2px 6px;
             border-radius: 4px;
             font-family: 'SF Mono', Monaco, Consolas, 'Courier New', monospace;
-            font-size: 13px;
+            font-size: 12.5px;
             direction: ltr;
             unicode-bidi: embed;
+            color: #ffe6cc;
         }
         .message pre {
-            background: #0d1117;
-            color: #c9d1d9;
+            background: #0d0d10;
+            color: #d4d4d8;
             padding: 14px 16px;
             border-radius: 10px;
             overflow-x: auto;
             margin: 10px 0;
             direction: ltr;
             text-align: left;
-            font-size: 13px;
-            line-height: 1.5;
+            font-size: 12.5px;
+            line-height: 1.55;
+            border: 1px solid var(--border);
         }
         .message pre code {
             background: transparent;
@@ -399,8 +417,8 @@
             display: block;
             font-family: 'SF Mono', Monaco, Consolas, 'Courier New', monospace;
         }
-        .message.user pre { background: rgba(255,255,255,0.08); color: #e6e6e6; }
-        .message.user code { background: rgba(255,255,255,0.12); color: #e6e6e6; }
+        .message.user pre { background: rgba(0,0,0,0.4); color: #e6e6e6; }
+        .message.user code { background: rgba(0,0,0,0.35); color: #ffe6cc; }
         .message img.msg-image {
             max-width: 100%;
             max-height: 300px;
@@ -419,7 +437,7 @@
             padding: 6px 10px;
             text-align: right;
         }
-        .message th { background: rgba(0,0,0,0.04); font-weight: 700; }
+        .message th { background: rgba(255,255,255,0.04); font-weight: 600; }
 
         /* Streaming cursor */
         .streaming-cursor::after {
@@ -434,13 +452,13 @@
 
         /* Tool call chips - compact inline indicator */
         .tool-chip {
-            background: #f8f8fb;
+            background: var(--bg-elevated);
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 8px 12px;
             margin: 4px 0;
             font-size: 12px;
-            color: var(--muted);
+            color: var(--muted-strong);
             cursor: pointer;
             transition: all 0.15s;
             animation: fadeIn 0.2s ease-out;
@@ -450,27 +468,27 @@
             display: inline-block;
             max-width: 100%;
         }
-        .tool-chip:hover { background: #f0f0f5; border-color: #d4d4db; }
+        .tool-chip:hover { background: var(--bg-input); border-color: var(--border-strong); }
         .tool-chip-header {
             display: flex;
             align-items: center;
             gap: 8px;
             font-weight: 500;
-            color: #555;
+            color: var(--text);
         }
         .tool-chip-icon {
             display: inline-block;
             width: 12px;
             height: 12px;
-            border: 2px solid var(--border);
+            border: 2px solid var(--border-strong);
             border-top-color: var(--accent);
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
             flex-shrink: 0;
         }
         .tool-chip.done {
-            background: #f0f9f0;
-            border-color: #c8e6c9;
+            background: rgba(74,222,128,0.08);
+            border-color: rgba(74,222,128,0.25);
         }
         .tool-chip.done .tool-chip-header { color: var(--success); }
         .tool-chip.done .tool-chip-icon {
@@ -486,13 +504,13 @@
             top: 0px;
             width: 4px;
             height: 7px;
-            border: solid white;
+            border: solid #0d0d10;
             border-width: 0 2px 2px 0;
             transform: rotate(45deg);
         }
         .tool-chip.error {
-            background: #fef2f2;
-            border-color: #fecaca;
+            background: rgba(248,113,113,0.08);
+            border-color: rgba(248,113,113,0.25);
         }
         .tool-chip.error .tool-chip-header { color: var(--error); }
         .tool-chip.error .tool-chip-icon {
@@ -505,18 +523,18 @@
             font-weight: 400;
             font-size: 11px;
             margin-right: 4px;
-            opacity: 0.7;
+            opacity: 0.85;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         .tool-chip-body {
             display: none;
             margin-top: 8px;
             padding-top: 8px;
-            border-top: 1px solid rgba(0,0,0,0.06);
+            border-top: 1px solid var(--border);
             max-height: 320px;
             overflow: auto;
             white-space: pre-wrap;
-            color: #555;
+            color: var(--muted-strong);
             font-size: 11px;
         }
         .tool-chip.expanded .tool-chip-body { display: block; }
@@ -526,18 +544,18 @@
             display: none;
             flex-wrap: wrap;
             gap: 8px;
-            padding: 12px 32px 0;
-            background: var(--card);
+            padding: 10px 32px 0;
+            background: var(--bg);
         }
         .attachment-row.visible { display: flex; }
         .attachment-thumb {
             position: relative;
-            width: 72px;
-            height: 72px;
+            width: 64px;
+            height: 64px;
             border-radius: 10px;
             overflow: hidden;
-            border: 1.5px solid var(--border);
-            background: #f5f5f7;
+            border: 1px solid var(--border-strong);
+            background: var(--bg-elevated);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -546,7 +564,7 @@
             width: 100%; height: 100%; object-fit: cover;
         }
         .attachment-thumb .filetype {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--muted);
             text-align: center;
             padding: 4px;
@@ -557,28 +575,28 @@
             position: absolute;
             top: 2px;
             left: 2px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.75);
             color: white;
-            border: none;
-            width: 20px;
-            height: 20px;
+            border: 1px solid rgba(255,255,255,0.15);
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             line-height: 1;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .attachment-thumb .remove-btn:hover { background: rgba(0,0,0,0.9); }
+        .attachment-thumb .remove-btn:hover { background: var(--error); }
 
         /* Clip / attach button */
         .attach-btn {
             background: transparent;
-            color: var(--muted);
-            border: 1.5px solid var(--border);
-            width: 50px;
-            height: 50px;
+            color: var(--muted-strong);
+            border: 1px solid var(--border-strong);
+            width: 48px;
+            height: 48px;
             border-radius: 14px;
             cursor: pointer;
             display: flex;
@@ -587,13 +605,13 @@
             transition: all 0.15s;
             flex-shrink: 0;
         }
-        .attach-btn:hover { background: #f0f0f3; color: var(--text); border-color: var(--text); }
-        .attach-btn svg { width: 20px; height: 20px; }
-        .attach-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .attach-btn:hover { background: var(--bg-elevated); color: var(--text); border-color: var(--accent); }
+        .attach-btn svg { width: 18px; height: 18px; }
+        .attach-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
         /* Drag-over highlight */
         .chat-container.drag-over {
-            background: rgba(59,130,246,0.06);
+            background: rgba(255,107,53,0.06);
         }
         .chat-container.drag-over::after {
             content: '📎 שחרר כאן כדי לצרף';
@@ -601,10 +619,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: var(--card);
-            padding: 20px 40px;
+            background: var(--bg-elevated);
+            padding: 18px 36px;
             border-radius: 16px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             color: var(--accent);
             border: 2px dashed var(--accent);
@@ -672,46 +690,48 @@
         .stop-btn:hover { background: #fee; }
 
         .input-area {
-            background: var(--card);
+            background: var(--bg);
             border-top: 1px solid var(--border);
-            padding: 20px 32px;
+            padding: 16px 32px 24px;
             display: flex;
-            gap: 12px;
+            gap: 10px;
             align-items: flex-end;
         }
 
         .chat-input {
             flex: 1;
-            padding: 14px 18px;
-            border: 1.5px solid var(--border);
+            padding: 13px 16px;
+            border: 1px solid var(--border-strong);
             border-radius: 14px;
             font-family: inherit;
-            font-size: 15px;
-            background: #fafafa;
-            transition: all 0.2s;
+            font-size: 14px;
+            background: var(--bg-input);
+            color: var(--text);
+            transition: all 0.15s;
             resize: none;
             max-height: 160px;
-            min-height: 50px;
+            min-height: 48px;
             line-height: 1.5;
         }
+        .chat-input::placeholder { color: var(--muted); }
 
         .chat-input:focus {
             outline: none;
-            border-color: var(--text);
-            background: white;
+            border-color: var(--accent);
+            background: var(--bg-elevated);
         }
 
         .chat-input:disabled {
-            opacity: 0.6;
+            opacity: 0.55;
             cursor: not-allowed;
         }
 
         .send-btn {
-            background: var(--text);
-            color: white;
+            background: var(--accent);
+            color: #fff;
             border: none;
-            width: 50px;
-            height: 50px;
+            width: 48px;
+            height: 48px;
             border-radius: 14px;
             cursor: pointer;
             display: flex;
@@ -722,16 +742,40 @@
         }
 
         .send-btn:hover:not(:disabled) {
+            background: #ff7a4c;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         .send-btn:disabled {
-            opacity: 0.4;
+            opacity: 0.35;
             cursor: not-allowed;
         }
 
-        .send-btn svg { width: 20px; height: 20px; }
+        .send-btn svg { width: 18px; height: 18px; }
+
+        /* Stop button (replaces send when generating) */
+        .stop-send-btn {
+            background: #2c2c30;
+            color: var(--text);
+            border: 1px solid var(--border-strong);
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .stop-send-btn:hover { background: rgba(248,113,113,0.18); border-color: var(--error); color: var(--error); }
+        .stop-send-btn::before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: currentColor;
+            border-radius: 2px;
+        }
 
         @media (max-width: 768px) {
             .layout { grid-template-columns: 1fr; }
@@ -835,7 +879,9 @@
         <main class="main">
             <header class="topbar">
                 <div class="topbar-title">
-                    <h1>סוכן החשבונאות</h1>
+                    <span>PORTAL-CHAMPIONS</span>
+                    <span class="breadcrumb-sep">/</span>
+                    <h1 id="topbarTitle">סוכן החשבונאות</h1>
                 </div>
                 <div class="agent-status" id="agentStatus">
                     <span class="status-dot yellow"></span>
@@ -893,11 +939,11 @@
                         rows="1"
                     ></textarea>
                     <button class="send-btn" id="sendBtn" title="שלח (Enter)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="22" y1="2" x2="11" y2="13"/>
-                            <polygon points="22,2 15,22 11,13 2,9 22,2"/>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
+                    <button class="stop-send-btn" id="stopBtn" title="עצור (Esc)" style="display:none"></button>
                 </div>
             </div>
         </main>
@@ -961,6 +1007,7 @@
         const messagesEl = document.getElementById('messages');
         const inputEl = document.getElementById('chatInput');
         const sendBtn = document.getElementById('sendBtn');
+        const stopBtn = document.getElementById('stopBtn');
         const attachBtn = document.getElementById('attachBtn');
         const fileInput = document.getElementById('fileInput');
         const attachmentRow = document.getElementById('attachmentRow');
@@ -970,6 +1017,54 @@
         let conversation = [];
         let isWaiting = false;
         let pendingAttachments = []; // [{name, mimeType, dataBase64, dataUrl}]
+        let currentAbortController = null;
+        let lastEventAt = 0;
+        let watchdogTimer = null;
+        let conversationId = null; // Persistent conversation ID
+
+        function setWaitingMode(waiting) {
+            isWaiting = waiting;
+            sendBtn.style.display = waiting ? 'none' : 'flex';
+            stopBtn.style.display = waiting ? 'flex' : 'none';
+            inputEl.disabled = waiting;
+            attachBtn.disabled = waiting;
+        }
+
+        function stopGeneration() {
+            if (currentAbortController) {
+                currentAbortController.abort('user-stop');
+                currentAbortController = null;
+            }
+            hideWorking();
+            stopWatchdog();
+            setWaitingMode(false);
+            inputEl.focus();
+        }
+
+        function startWatchdog() {
+            lastEventAt = Date.now();
+            stopWatchdog();
+            watchdogTimer = setInterval(() => {
+                const silentMs = Date.now() - lastEventAt;
+                if (silentMs > 30000) {
+                    // After 30s of silence, show a warning above the working indicator
+                    const ind = document.getElementById('workingIndicator');
+                    if (ind && !ind.dataset.warned) {
+                        ind.dataset.warned = '1';
+                        const warn = document.createElement('div');
+                        warn.style.cssText = 'font-size: 11px; color: var(--warning); margin-top: 6px;';
+                        warn.textContent = `⚠️ אין תגובה כבר ${Math.round(silentMs/1000)} שניות. לחץ ⬛ כדי לעצור.`;
+                        ind.appendChild(warn);
+                    }
+                }
+            }, 5000);
+        }
+
+        function stopWatchdog() {
+            if (watchdogTimer) { clearInterval(watchdogTimer); watchdogTimer = null; }
+        }
+
+        function noteEvent() { lastEventAt = Date.now(); }
 
         // ============ MARKDOWN RENDERING ============
         // Lightweight, safe markdown -> HTML. Handles common cases without
@@ -1265,34 +1360,56 @@
             pendingAttachments = [];
             renderAttachmentRow();
 
-            isWaiting = true;
-            sendBtn.disabled = true;
-            inputEl.disabled = true;
-            attachBtn.disabled = true;
+            setWaitingMode(true);
+            startWatchdog();
 
             // Pick endpoint: streaming for "claude" agent, classic for accounting
-            if (currentAgent === 'claude') {
-                await sendStreaming();
-            } else {
-                await sendClassic();
+            try {
+                if (currentAgent === 'claude') {
+                    await sendStreaming();
+                } else {
+                    await sendClassic();
+                }
+                // Save conversation snapshot to backend (fire-and-forget)
+                persistConversation();
+            } finally {
+                stopWatchdog();
+                setWaitingMode(false);
+                inputEl.focus();
             }
+        }
 
-            isWaiting = false;
-            sendBtn.disabled = false;
-            inputEl.disabled = false;
-            attachBtn.disabled = false;
-            inputEl.focus();
+        async function persistConversation() {
+            try {
+                await fetch('/api/conversations/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: conversationId,
+                        agent: currentAgent,
+                        messages: conversation,
+                    }),
+                }).then(r => r.json()).then(d => {
+                    if (d && d.id) conversationId = d.id;
+                });
+            } catch (e) {
+                // Non-fatal
+                console.warn('Persist failed:', e.message);
+            }
         }
 
         async function sendClassic() {
-            showTyping();
+            currentAbortController = new AbortController();
+            showWorking('חושב');
+            noteEvent();
             try {
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ messages: conversation, agent_type: currentAgent }),
+                    signal: currentAbortController.signal,
                 });
-                hideTyping();
+                hideWorking();
                 if (!res.ok) {
                     const err = await res.json().catch(() => ({ error: 'שגיאת שרת' }));
                     addMessage('bot', `שגיאה: ${err.error || 'לא ידוע'}`, true);
@@ -1302,19 +1419,26 @@
                 addMessage('bot', data.message || '(אין תוכן)');
                 if (data.conversation) conversation = data.conversation;
             } catch (err) {
-                hideTyping();
-                addMessage('bot', `שגיאת חיבור: ${err.message}`, true);
+                hideWorking();
+                if (err.name === 'AbortError') {
+                    addMessage('bot', '_עצרת את הפעולה._', true);
+                } else {
+                    addMessage('bot', `שגיאת חיבור: ${err.message}`, true);
+                }
+            } finally {
+                currentAbortController = null;
             }
         }
 
         async function sendStreaming() {
-            showTyping();
-            let currentBotDiv = null;
-            let currentBotText = '';
+            currentAbortController = new AbortController();
+            showWorking('חושב', 0);
+            noteEvent();
 
+            let currentBotDiv = null;
             const ensureBotDiv = () => {
                 if (!currentBotDiv) {
-                    hideTyping();
+                    hideWorking();
                     currentBotDiv = document.createElement('div');
                     currentBotDiv.className = 'message bot streaming-cursor';
                     messagesEl.appendChild(currentBotDiv);
@@ -1326,7 +1450,6 @@
                 if (currentBotDiv) {
                     currentBotDiv.classList.remove('streaming-cursor');
                     currentBotDiv = null;
-                    currentBotText = '';
                 }
             };
 
@@ -1335,9 +1458,10 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ messages: conversation, agent_type: currentAgent }),
+                    signal: currentAbortController.signal,
                 });
                 if (!res.ok || !res.body) {
-                    hideTyping();
+                    hideWorking();
                     const err = await res.json().catch(() => ({ error: 'שגיאת שרת' }));
                     addMessage('bot', `שגיאה: ${err.error || 'לא ידוע'}`, true);
                     return;
@@ -1350,9 +1474,9 @@
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) break;
+                    noteEvent();
                     buffer += decoder.decode(value, { stream: true });
 
-                    // Parse SSE: events separated by \n\n, lines starting with "event:" / "data:"
                     let sepIdx;
                     while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
                         const rawEvent = buffer.slice(0, sepIdx);
@@ -1371,9 +1495,16 @@
                 }
                 finalizeBotDiv();
             } catch (err) {
-                hideTyping();
+                hideWorking();
                 finalizeBotDiv();
-                addMessage('bot', `שגיאת חיבור: ${err.message}`, true);
+                if (err.name === 'AbortError') {
+                    addMessage('bot', '_עצרת את הפעולה._', true);
+                } else {
+                    // Show diagnostic info
+                    addMessage('bot', `שגיאת חיבור: ${err.message}\n\nבדוק עם \`curl https://portal-champions.co.il/api/health\` שהבקאנד חי.`, true);
+                }
+            } finally {
+                currentAbortController = null;
             }
         }
 
@@ -1422,11 +1553,15 @@
 
         // ============ EVENT BINDINGS ============
         sendBtn.addEventListener('click', sendMessage);
+        stopBtn.addEventListener('click', stopGeneration);
 
         inputEl.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
+            } else if (e.key === 'Escape' && isWaiting) {
+                e.preventDefault();
+                stopGeneration();
             }
         });
 
@@ -1540,7 +1675,7 @@
             });
 
             // Update topbar title
-            document.querySelector('.topbar-title h1').textContent = AGENTS[agentName].title;
+            document.getElementById('topbarTitle').textContent = AGENTS[agentName].title;
 
             // Clear chat & show new welcome
             conversation = [];

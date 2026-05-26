@@ -1235,11 +1235,227 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
         time: new Date().toISOString(),
-        version: '1.0.0',
+        version: '1.2.0',
         google_connected: !!loadTokens(),
         anthropic_configured: !!process.env.ANTHROPIC_API_KEY,
+        github_token_configured: !!process.env.GITHUB_TOKEN,
+        tools_available: {
+            bash: true,
+            git: true, // available since Dockerfile installs it
+            python: true,
+        },
     });
 });
+
+// ============================================================
+// CONVERSATIONS API (history + Drive sync)
+// ============================================================
+const CONVERSATIONS_DIR = path.join(DATA_DIR, 'conversations');
+if (!fs.existsSync(CONVERSATIONS_DIR)) fs.mkdirSync(CONVERSATIONS_DIR, { recursive: true });
+
+function makeConversationId() {
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const rand = Math.random().toString(36).slice(2, 8);
+    return `${stamp}-${rand}`;
+}
+
+function conversationFilePath(id) {
+    // Basic sanitization
+    const safe = String(id).replace(/[^a-zA-Z0-9._-]/g, '');
+    return path.join(CONVERSATIONS_DIR, `${safe}.json`);
+}
+
+// Serialize content blocks to readable markdown (for Drive)
+function conversationToMarkdown(record) {
+    const lines = [
+        `# שיחה - ${record.agent}`,
+        `_נשמר: ${new Date(record.updated_at).toLocaleString('he-IL')}_`,
+        `_מזהה: ${record.id}_`,
+        '',
+        '---',
+        '',
+    ];
+    for (const msg of record.messages) {
+        const role = msg.role === 'user' ? '🧑 רון' : '🤖 ' + (record.agent === 'claude' ? 'קלוד' : 'סוכן חשבונאות');
+        lines.push(`## ${role}`, '');
+        const content = msg.content;
+        if (typeof content === 'string') {
+            lines.push(content);
+        } else if (Array.isArray(content)) {
+            for (const block of content) {
+                if (block.type === 'text') lines.push(block.text || '');
+                else if (block.type === 'image') lines.push(`_[תמונה: ${block.source?.media_type || 'image'}]_`);
+                else if (block.type === 'tool_use') lines.push(`> 🔧 \`${block.name}\` קרא לכלי`);
+                else if (block.type === 'tool_result') {
+                    const txt = typeof block.content === 'string' ? block.content :
+                                Array.isArray(block.content) ? block.content.map(c => c.text || '').join('') : '';
+                    lines.push(`> 📤 תוצאת כלי: ${txt.slice(0, 300)}${txt.length > 300 ? '...' : ''}`);
+                }
+            }
+        }
+        lines.push('');
+    }
+    return lines.join('\n');
+}
+
+// Save / update a conversation. Idempotent by id.
+app.post('/api/conversations/save', async (req, res) => {
+    try {
+        let { id, agent, messages } = req.body;
+        if (!Array.isArray(messages)) return res.status(400).json({ error: 'messages array required' });
+        if (!id) id = makeConversationId();
+
+        const filePath = conversationFilePath(id);
+        const existing = fs.existsSync(filePath)
+            ? JSON.parse(fs.readFileSync(filePath, 'utf8'))
+            : { id, agent: agent || 'claude', created_at: new Date().toISOString() };
+
+        const record = {
+            ...existing,
+            id,
+            agent: agent || existing.agent,
+            messages,
+            updated_at: new Date().toISOString(),
+            message_count: messages.length,
+            // Compute a title from first user message
+            title: existing.title || computeConvTitle(messages),
+        };
+        fs.writeFileSync(filePath, JSON.stringify(record, null, 2));
+
+        // Best-effort: also sync to Google Drive (fire-and-forget)
+        syncConversationToDrive(record).catch((e) => console.warn('Drive sync failed:', e.message));
+
+        res.json({ id, saved: true, title: record.title });
+    } catch (err) {
+        console.error('Save conv error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+function computeConvTitle(messages) {
+    for (const m of messages) {
+        if (m.role !== 'user') continue;
+        let txt = '';
+        if (typeof m.content === 'string') txt = m.content;
+        else if (Array.isArray(m.content)) {
+            const t = m.content.find((b) => b.type === 'text');
+            if (t) txt = t.text || '';
+        }
+        if (txt) return txt.slice(0, 80);
+    }
+    return 'שיחה ללא שם';
+}
+
+app.get('/api/conversations', (req, res) => {
+    try {
+        const files = fs.readdirSync(CONVERSATIONS_DIR).filter((f) => f.endsWith('.json'));
+        const summaries = files.map((f) => {
+            try {
+                const rec = JSON.parse(fs.readFileSync(path.join(CONVERSATIONS_DIR, f), 'utf8'));
+                return {
+                    id: rec.id,
+                    title: rec.title || 'שיחה',
+                    agent: rec.agent,
+                    updated_at: rec.updated_at,
+                    message_count: rec.message_count || (rec.messages || []).length,
+                };
+            } catch { return null; }
+        }).filter(Boolean);
+        summaries.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+        res.json({ conversations: summaries.slice(0, 50) });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/conversations/:id', (req, res) => {
+    try {
+        const filePath = conversationFilePath(req.params.id);
+        if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'not found' });
+        const rec = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        res.json(rec);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/conversations/:id', (req, res) => {
+    try {
+        const filePath = conversationFilePath(req.params.id);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        res.json({ deleted: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Drive sync: upload (or update) a .md file per conversation in a dedicated folder
+let _convDriveFolderId = null;
+async function getOrCreateConvDriveFolder() {
+    if (_convDriveFolderId) return _convDriveFolderId;
+    if (!loadTokens()) return null;
+    const drive = getDrive();
+    // Look for existing folder
+    const res = await drive.files.list({
+        q: `name='Portal-Conversations' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        fields: 'files(id, name)',
+        pageSize: 1,
+    });
+    if (res.data.files.length > 0) {
+        _convDriveFolderId = res.data.files[0].id;
+        return _convDriveFolderId;
+    }
+    const created = await drive.files.create({
+        requestBody: {
+            name: 'Portal-Conversations',
+            mimeType: 'application/vnd.google-apps.folder',
+        },
+        fields: 'id',
+    });
+    _convDriveFolderId = created.data.id;
+    return _convDriveFolderId;
+}
+
+const _convDriveFileIds = new Map(); // conv id -> drive file id
+
+async function syncConversationToDrive(record) {
+    if (!loadTokens()) return; // No Drive auth, skip silently
+    const folderId = await getOrCreateConvDriveFolder();
+    if (!folderId) return;
+    const drive = getDrive();
+    const fileName = `${record.id}.md`;
+    const content = conversationToMarkdown(record);
+    const { Readable } = require('stream');
+    const stream = Readable.from(Buffer.from(content, 'utf8'));
+
+    let driveFileId = _convDriveFileIds.get(record.id);
+    if (!driveFileId) {
+        // Search by name in folder
+        const res = await drive.files.list({
+            q: `name='${fileName}' and '${folderId}' in parents and trashed=false`,
+            fields: 'files(id, name)',
+            pageSize: 1,
+        });
+        if (res.data.files.length > 0) driveFileId = res.data.files[0].id;
+    }
+
+    if (driveFileId) {
+        await drive.files.update({
+            fileId: driveFileId,
+            media: { mimeType: 'text/markdown', body: Readable.from(Buffer.from(content, 'utf8')) },
+            fields: 'id',
+        });
+    } else {
+        const created = await drive.files.create({
+            requestBody: { name: fileName, parents: [folderId] },
+            media: { mimeType: 'text/markdown', body: stream },
+            fields: 'id',
+        });
+        driveFileId = created.data.id;
+    }
+    _convDriveFileIds.set(record.id, driveFileId);
+}
 
 // ----- 404 / Fallback to index.html for SPA-like behavior -----
 app.use((req, res) => {
