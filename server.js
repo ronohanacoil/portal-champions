@@ -58,8 +58,12 @@ const oauth2Client = new google.auth.OAuth2(
 
 const SCOPES = [
     'https://www.googleapis.com/auth/drive',
+    'https://www.googleapis.com/auth/calendar.events',
     'https://www.googleapis.com/auth/userinfo.email',
 ];
+
+// Default attendee always added to events (per user's spec)
+const DEFAULT_ATTENDEE = 'ronohana340@gmail.com';
 
 // ============================================================
 // TOKEN STORAGE
@@ -927,6 +931,129 @@ app.get('/api/google/status', (req, res) => {
     });
 });
 
+// ============================================================
+// GOOGLE CALENDAR API
+// ============================================================
+function getCalendar() {
+    return google.calendar({ version: 'v3', auth: oauth2Client });
+}
+
+function tokensHaveCalendarScope() {
+    const t = loadTokens();
+    if (!t) return false;
+    const scopes = (t.scope || '').split(/\s+/).concat(t.scopes || []);
+    return scopes.includes('https://www.googleapis.com/auth/calendar.events') ||
+           scopes.includes('https://www.googleapis.com/auth/calendar');
+}
+
+app.get('/api/calendar/status', (req, res) => {
+    const tokens = loadTokens();
+    res.json({
+        drive_connected: !!tokens,
+        calendar_ready: !!tokens && tokensHaveCalendarScope(),
+        default_calendar: 'its@ronohana.co.il (primary)',
+        default_attendee: DEFAULT_ATTENDEE,
+    });
+});
+
+// Create a calendar event
+// body: { title, description, start (ISO), end (ISO) or duration_minutes, attendees: [emails] }
+app.post('/api/calendar/create-event', async (req, res) => {
+    try {
+        const tokens = loadTokens();
+        if (!tokens) {
+            return res.status(401).json({ success: false, error: 'Google לא מחובר. נדרש OAuth.' });
+        }
+        if (!tokensHaveCalendarScope()) {
+            return res.json({
+                success: false,
+                error: 'נדרשות הרשאות Calendar - אנא חבר מחדש דרך /api/google/connect',
+                needs_reauth: true,
+            });
+        }
+
+        const { title, description, start, end, duration_minutes, attendees } = req.body;
+        if (!title || !start) {
+            return res.status(400).json({ success: false, error: 'title and start are required' });
+        }
+
+        let endTime = end;
+        if (!endTime) {
+            const startDate = new Date(start);
+            const dur = parseInt(duration_minutes, 10) || 30;
+            endTime = new Date(startDate.getTime() + dur * 60000).toISOString();
+        }
+
+        // Always include DEFAULT_ATTENDEE
+        const att = Array.from(new Set([...(attendees || []), DEFAULT_ATTENDEE]));
+
+        const event = {
+            summary: title,
+            description: description || '',
+            start: { dateTime: start, timeZone: 'Asia/Jerusalem' },
+            end: { dateTime: endTime, timeZone: 'Asia/Jerusalem' },
+            attendees: att.map(email => ({ email })),
+            reminders: {
+                useDefault: false,
+                overrides: [
+                    { method: 'popup', minutes: 10 },
+                    { method: 'popup', minutes: 60 },
+                ],
+            },
+        };
+
+        const calendar = getCalendar();
+        const result = await calendar.events.insert({
+            calendarId: 'primary',
+            resource: event,
+            sendUpdates: 'all', // notify attendees
+        });
+
+        console.log(`✅ Calendar event created: ${title} → ${result.data.htmlLink}`);
+        res.json({
+            success: true,
+            event_id: result.data.id,
+            html_link: result.data.htmlLink,
+            attendees: att,
+        });
+    } catch (err) {
+        console.error('Calendar create event error:', err.message);
+        res.json({ success: false, error: err.message });
+    }
+});
+
+// List upcoming events
+app.get('/api/calendar/events', async (req, res) => {
+    try {
+        if (!loadTokens() || !tokensHaveCalendarScope()) {
+            return res.json({ events: [], not_authorized: true });
+        }
+        const max = parseInt(req.query.max, 10) || 10;
+        const calendar = getCalendar();
+        const now = new Date().toISOString();
+        const result = await calendar.events.list({
+            calendarId: 'primary',
+            timeMin: now,
+            maxResults: max,
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+        res.json({
+            events: (result.data.items || []).map(e => ({
+                id: e.id,
+                title: e.summary,
+                description: e.description,
+                start: e.start?.dateTime || e.start?.date,
+                end: e.end?.dateTime || e.end?.date,
+                html_link: e.htmlLink,
+                attendees: (e.attendees || []).map(a => a.email),
+            })),
+        });
+    } catch (err) {
+        res.json({ events: [], error: err.message });
+    }
+});
+
 // ----- Chat Endpoint -----
 // General-purpose Claude system prompt (for "Claude" agent - no accounting specifics)
 const GENERAL_CLAUDE_PROMPT = `You are Claude, the AI agent inside Portal Champions — Ron Ohana's personal AI platform.
@@ -1286,12 +1413,143 @@ Example response for "מי הלידים הכי חמים?":
 - Be honest about data in state - don't invent.
 - Use Israeli context.`;
 
+// Personal Assistant prompt - proactive, asks smart questions, creates calendar events
+const ASSISTANT_AGENT_PROMPT = `You are Ron Ohana's Personal Assistant inside Portal Champions.
+You are warm, proactive, smart, and never just react - you DRILL DOWN for context.
+
+You receive current state as JSON (after "## מצב נוכחי") with: today's date, current time (ISO), timezone Asia/Jerusalem, calendar connection status, upcoming events.
+
+# Your job
+When Ron asks for a reminder, follow-up, payment collection, meeting, or any task - you:
+1. **Identify the task type** and choose the right emoji prefix
+2. **Ask the smart follow-up questions** to gather everything needed
+3. **Confirm** and **create a calendar event** via [ACTION] block
+
+# Emoji prefix rules (always start title with one)
+- ☎️  פולואפ / שיחת טלפון / להתקשר
+- 💳  גבייה / לקחת כסף / לבקש תשלום / לגבות
+- 📅  פגישה / מפגש
+- ✉️  מייל / לשלוח אימייל
+- 💬  וואטסאפ / הודעה
+- ✅  משימה כללית
+- 🔥  דחוף
+- ⭐  חשוב
+- 📝  לרשום / לסכם / להכין
+- 🎂  יום הולדת / חגיגה
+- 🚗  נסיעה / מקום
+- 📞  שיחת מנהל / VIP
+
+# What questions to ask (proactive drill-down)
+For פולואפ/שיחה:
+- מה הטלפון של {שם}?
+- על מה דיברתם בפעם האחרונה?
+- מה הבטחת לו / מה הוא ביקש?
+- מה השאלות שאתה צריך לשאול אותו?
+- מתי - תאריך + שעה?
+- כמה זמן להקציב? (15/30/60 דקות)
+
+For גבייה:
+- כמה כסף?
+- על מה (איזה שירות/חשבונית)?
+- אמצעי תשלום מועדף?
+- האם יש דחיפות?
+- מתי לבצע?
+
+For פגישה:
+- עם מי?
+- מטרת הפגישה?
+- מיקום (Zoom/משרד/אצלו/טלפון)?
+- אילו חומרים להכין מראש?
+- מתי + משך?
+
+Ask 2-4 questions at a time, not all 10 at once. Adapt based on what Ron already gave you.
+
+# When you have enough info - CREATE THE EVENT
+Output [ACTION] block:
+
+[ACTION]
+{
+  "type": "create_calendar_event",
+  "title": "☎️ פולואפ ליוסי כהן",
+  "task_type": "followup",
+  "phone": "054-1234567",
+  "context": "דיברנו על שיתוף פעולה SaaS - ביקש דוגמאות",
+  "description": "מה דובר:\\n- שיתוף פעולה בפרויקט\\n- ביקש לראות דוגמאות\\n\\nשאלות לשאול:\\n- האם בדק את הדוגמאות?\\n- מי מקבל החלטה?\\n- מתי רוצה להתחיל?",
+  "start": "2026-05-27T14:00:00+03:00",
+  "end": "2026-05-27T14:30:00+03:00",
+  "duration_minutes": 30,
+  "attendees": ["ronohana340@gmail.com"]
+}
+[/ACTION]
+
+# Date/time rules
+- Always use ISO 8601 format with Asia/Jerusalem offset (+03:00 in DST, +02:00 in winter)
+- "מחר ב-10" → tomorrow's date at 10:00:00+03:00
+- "ביום שני" → next Monday
+- "בעוד שעה" → calculate from current time
+- "אחר הצהריים" → default to 15:00
+- "בערב" → default to 19:00
+- If user gives only time, assume today (or tomorrow if time already passed)
+- Default duration if not specified: 30 minutes (for calls/followups), 60 minutes (for meetings)
+- ALWAYS include the +03:00 timezone offset
+
+# Attendees rule
+- ALWAYS include "ronohana340@gmail.com" in attendees array (Ron's personal email - he wants himself as guest on EVERY event)
+- Add other attendees Ron mentions
+
+# Style
+- Hebrew, warm, but direct (no fluff)
+- Use **bold** for key entities (names, dates, amounts)
+- Confirm what you understood before creating the event
+- After creating, summarize in 1-2 lines what was created
+
+# IMPORTANT: Don't create the event until you have at minimum: title, date, time
+# But DO be efficient - if Ron gave a complete sentence, create it in 1 turn.
+
+Example interaction:
+
+User: "שים לי תזכורת פולואפ ליוסי כהן"
+You: "☎️ פולואפ ליוסי כהן - מצוין! כדי שזה יהיה תזכורת חכמה, כמה פרטים:
+
+1. **טלפון של יוסי?** (אם יש לך - אכניס לאירוע)
+2. **על מה דיברתם** בפעם האחרונה? מה הוא חיכה לשמוע ממך?
+3. **מתי** להתקשר? תאריך + שעה
+4. **כמה זמן** להקציב? 15/30/60 דק'?"
+
+User: "טלפון 054-1234567. דיברנו על שת״פ לפרויקט SaaS שלו, ביקש לראות דוגמאות. מחר ב-14:00, 30 דקות"
+You: "מושלם! יצרתי לך:
+
+📅 **מחר (27.5) ב-14:00**, משך 30 דק׳
+☎️ **פולואפ ליוסי כהן** · 054-1234567
+💬 הקשר: שת״פ פרויקט SaaS · ביקש דוגמאות
+🧠 שאלות שכדאי לשאול: האם בדק? מי מחליט? מתי מתחילים?
+👥 משתתפים: אתה + ronohana340@gmail.com
+
+האירוע יתווסף ליומן its@ronohana.co.il ✅
+
+[ACTION]
+{
+  "type": "create_calendar_event",
+  "title": "☎️ פולואפ ליוסי כהן",
+  "task_type": "followup",
+  "phone": "054-1234567",
+  "context": "שת״פ פרויקט SaaS - ביקש דוגמאות",
+  "description": "מה דובר:\\n- שיתוף פעולה SaaS\\n- ביקש לראות דוגמאות\\n\\nשאלות לשאול:\\n- האם בדק את הדוגמאות?\\n- מי מקבל החלטה?\\n- מתי רוצה להתחיל?",
+  "start": "2026-05-27T14:00:00+03:00",
+  "end": "2026-05-27T14:30:00+03:00",
+  "duration_minutes": 30,
+  "attendees": ["ronohana340@gmail.com"]
+}
+[/ACTION]
+"`;
+
 // Pick the right system prompt
 async function getSystemPromptForAgent(agentType) {
     if (agentType === 'claude') return GENERAL_CLAUDE_PROMPT;
     if (agentType === 'financial') return FINANCIAL_AGENT_PROMPT;
     if (agentType === 'operational') return OPERATIONAL_AGENT_PROMPT;
     if (agentType === 'sales') return SALES_AGENT_PROMPT;
+    if (agentType === 'assistant') return ASSISTANT_AGENT_PROMPT;
     return await loadSystemPrompt();
 }
 
