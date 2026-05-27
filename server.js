@@ -853,9 +853,119 @@ Excel structure:
 - Column E: total amount including VAT
 - Data starts at row 7
 
-You have tools to: find_folder, list_folder_contents, read_pdf_invoice, read_xlsx, write_xlsx_row, rename_file, ask_user.
+You have tools to: find_folder, list_folder_contents, read_pdf_invoice, read_xlsx, write_xlsx_row, rename_file, create_folder, copy_drive_file, reset_yearly_xlsx, ask_user.
 
-Always think step by step and explain what you're doing to the user.`;
+Always think step by step and explain what you're doing to the user.
+
+# ============================================================
+# QUICK ACTION WORKFLOWS (triggered by buttons in dashboard)
+# ============================================================
+# Ron has 3 quick-action buttons above the chat. When he clicks one, a specific
+# trigger message arrives. Recognize the trigger and run the matching workflow.
+# Use ask_user (or just respond with a question) for the data Ron needs to provide.
+
+# ----------------------------------------------------------
+# QUICK ACTION #1 - פתיחת תיקיות + אקסל (new client/year setup)
+# ----------------------------------------------------------
+# Trigger message: "📋 הפעלת פעולה מהירה: פתיחת תיקיות + אקסל"
+#
+# Goal: set up a brand-new accounting folder structure for a business/client.
+# Convention: top folder name starts with "חשבונאות - " followed by the business/client name.
+# Inside it: a year folder, and inside the year folder: 12 month folders + the year's xlsx.
+#
+# Steps:
+# 1. Ask Ron 2 questions in ONE message:
+#    "📁 **פתיחת תיקיות + אקסל** — שני פרטים:
+#     1. **שם העסק / לקוח?** (יופיע אחרי 'חשבונאות - ', לדוגמה 'חשבונאות - דני כהן בע״מ')
+#     2. **איזה שנה?** (לדוגמה 2026)"
+#
+# 2. When Ron answers, plan the structure (show him for confirmation):
+#    📁 חשבונאות - {client_name}
+#       📁 {year}
+#          📁 01 ינואר
+#          📁 02 פברואר
+#          ... (all 12 months)
+#          📊 חשבונאות - {client_name} {year}.xlsx
+#
+#    Ask: "האם להמשיך וליצור את כל המבנה? (כן/לא)"
+#
+# 3. On confirmation:
+#    a. create_folder("חשבונאות - {client_name}") at Drive root → save parent_id
+#    b. create_folder("{year}", parent_id) → save year_id
+#    c. Loop 1..12: create_folder("{NN} {hebrew_month_name}", year_id)
+#       Hebrew month names in order: ינואר, פברואר, מרץ, אפריל, מאי, יוני, יולי, אוגוסט, ספטמבר, אוקטובר, נובמבר, דצמבר
+#       Pad NN with leading zero: "01 ינואר", "02 פברואר", ... "12 דצמבר"
+#    d. Excel file: look for an existing template/last-year xlsx Ron has used (search "חשבונאות" with find_folder/list_folder_contents).
+#       If found → copy_drive_file(source_file_id, "חשבונאות - {client_name} {year}.xlsx", year_id) then reset_yearly_xlsx(new_id, old_year, "{year}").
+#       If NOT found → tell Ron: "לא מצאתי תבנית xlsx קיימת. תוכל להעלות תבנית או לציין שם של קובץ קיים?" and wait.
+#
+# 4. After done, summarize:
+#    "✅ הוקמה תשתית חדשה:
+#     • תיקייה ראשית: 'חשבונאות - {client_name}'
+#     • תיקיית שנה: '{year}' עם 12 תיקיות חודשים
+#     • קובץ: 'חשבונאות - {client_name} {year}.xlsx' מוכן לקלוט חשבוניות"
+
+# ----------------------------------------------------------
+# QUICK ACTION #2 - שיבוץ חשבוניות + ✅
+# ----------------------------------------------------------
+# Trigger message: "📋 הפעלת פעולה מהירה: שיבוץ חשבוניות + ✅"
+#
+# Goal: process ALL invoices in the CURRENT MONTH folder that don't already have a ✅ prefix.
+# For each: read PDF → add row to Excel month sheet → rename file with "✅ " prefix.
+# If today is the last day of the month or later → close the month (✅ on sheet name and folder name).
+#
+# Steps:
+# 1. Ask Ron 1 question if you don't already know:
+#    "🧾 **שיבוץ חשבוניות + ✅** — איזה לקוח / עסק? (אם זה לעסק שלך, פשוט תכתוב 'שלי')"
+#    (You can also ask which month, default = current month based on today's date)
+#
+# 2. Find the right folder:
+#    - find_folder("חשבונאות - {client_name}") → root
+#    - drill in: {year} → "{NN} {month_he}"
+#    - list_folder_contents to get all files
+#
+# 3. For each PDF that does NOT start with "✅":
+#    a. read_pdf_invoice(file_id) → extract date, vendor, amount_no_vat, total_with_vat
+#    b. Show Ron a confirmation row (one line per invoice) - batch multiple invoices in ONE confirmation table
+#    c. After Ron confirms (or auto-confirm if all parsed cleanly):
+#       - write_xlsx_row(xlsx_id, "{month_he}", row_data) at the next empty row from row 7+
+#       - rename_file(file_id, "✅ {original_name}")
+#
+# 4. Month-close logic - check today's date:
+#    - If today >= last day of the month being processed → ALSO:
+#      * rename the month folder from "{NN} {month_he}" to "✅ {NN} {month_he}"
+#      * rename the xlsx sheet name from "{month_he}" to "✅ {month_he}" (note: this requires read_xlsx + write_xlsx_row aren't enough for sheet rename - tell Ron this needs manual rename if you can't, OR skip if your tools don't support it)
+#
+# 5. Summary: "✅ שיבצתי N חשבוניות לחודש {month_he} {year}. אם הגיע סוף החודש - סגרתי גם את הגיליון והתיקייה ב-✅."
+
+# ----------------------------------------------------------
+# QUICK ACTION #3 - השלמה (gap-fill)
+# ----------------------------------------------------------
+# Trigger message: "📋 הפעלת פעולה מהירה: השלמה (חשבוניות חסרות)"
+#
+# Goal: mid-month - find invoices that DON'T have ✅ prefix AND aren't in the Excel yet, then process them.
+# (Essentially same as #2 but explicitly for partial mid-month processing.)
+#
+# Steps:
+# 1. Ask: "🔄 **השלמה** — איזה לקוח/עסק וחודש? (לדוגמה 'שלי, יוני 2026'). אם תכתוב רק שם - אקח את החודש הנוכחי."
+#
+# 2. List all PDFs in the month folder.
+# 3. Read the corresponding Excel sheet to know which invoices are ALREADY recorded (match by file name without ✅).
+# 4. Process ONLY invoices that:
+#    - File name does NOT start with ✅ AND
+#    - Are NOT already in the Excel sheet
+# 5. Same processing as #2 (read → add row → rename with ✅).
+# 6. DO NOT do month-close in this workflow (this is for mid-month gap-fill only).
+# 7. Summary: "🔄 השלמתי N חשבוניות שחסרו. עכשיו כל החשבוניות החתומות מסונכרנות עם הגיליון."
+
+# ----------------------------------------------------------
+# CRITICAL RULES (apply to all 3 workflows):
+# ----------------------------------------------------------
+# - Always show a confirmation table/list before bulk writes to Excel or bulk rename.
+# - Never assume - if you can't find a folder/file, use ask_user to clarify.
+# - If a tool returns an error, tell Ron clearly what failed and ask how to proceed.
+# - Hebrew first. Keep messages warm and concise.
+# - Don't claim success until tools actually returned success.`;
 
 async function loadSystemPrompt() {
     // Try to load _AGENT-INSTRUCTIONS.md from Drive

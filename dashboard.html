@@ -914,6 +914,46 @@
             align-items: flex-end;
         }
 
+        /* Quick actions row (accounting agent only) */
+        .qa-row {
+            display: none;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 10px 32px 0;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+        }
+        body.agent-accounting .qa-row { display: flex; }
+        .qa-label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+            margin-left: 4px;
+        }
+        .qa-btn {
+            padding: 7px 12px;
+            background: var(--bg-elevated);
+            color: var(--text);
+            border: 1px solid var(--border-strong);
+            border-radius: 999px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.15s;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .qa-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+        .qa-btn:active { transform: translateY(0); }
+
         .chat-input {
             flex: 1;
             padding: 13px 16px;
@@ -1179,6 +1219,18 @@
                 </div>
 
                 <div class="attachment-row" id="attachmentRow"></div>
+                <div class="qa-row" id="qaRow">
+                    <span class="qa-label">⚡ פעולות מהירות:</span>
+                    <button class="qa-btn" onclick="qaOpenAccountingSetup()" title="הקמת תיקיות שנתיות + קובץ אקסל לעסק/לקוח חדש">
+                        📁 פתיחת תיקיות + אקסל
+                    </button>
+                    <button class="qa-btn" onclick="qaPlaceInvoices()" title="שיבוץ כל החשבוניות החדשות באקסל, סימון ✅, וסגירת חודש אם רלוונטי">
+                        🧾 שיבוץ חשבוניות + ✅
+                    </button>
+                    <button class="qa-btn" onclick="qaCompleteMissing()" title="זיהוי חשבוניות שעוד לא סומנו ושיבוצן באקסל">
+                        🔄 השלמה
+                    </button>
+                </div>
                 <div class="input-area">
                     <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.csv,.json,.md,.log" style="display:none">
                     <button class="attach-btn" id="attachBtn" title="צרף קובץ / תמונה">
@@ -1597,6 +1649,24 @@
                 thumb.appendChild(btn);
                 attachmentRow.appendChild(thumb);
             });
+        }
+
+        // ============ QUICK ACTIONS (accounting agent only) ============
+        // Each one injects a distinct trigger phrase into the chat. The agent's
+        // system prompt recognizes these phrases and runs the matching workflow.
+        function qaSendTrigger(text) {
+            if (isWaiting) return;
+            inputEl.value = text;
+            sendMessage();
+        }
+        function qaOpenAccountingSetup() {
+            qaSendTrigger('📋 הפעלת פעולה מהירה: פתיחת תיקיות + אקסל');
+        }
+        function qaPlaceInvoices() {
+            qaSendTrigger('📋 הפעלת פעולה מהירה: שיבוץ חשבוניות + ✅');
+        }
+        function qaCompleteMissing() {
+            qaSendTrigger('📋 הפעלת פעולה מהירה: השלמה (חשבוניות חסרות)');
         }
 
         // ============ SEND MESSAGE ============
