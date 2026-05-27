@@ -58,7 +58,7 @@ const oauth2Client = new google.auth.OAuth2(
 
 const SCOPES = [
     'https://www.googleapis.com/auth/drive',
-    'https://www.googleapis.com/auth/calendar.events',
+    'https://www.googleapis.com/auth/calendar',  // FULL calendar access (was calendar.events - too narrow, caused 403)
     'https://www.googleapis.com/auth/userinfo.email',
 ];
 
@@ -942,8 +942,9 @@ function tokensHaveCalendarScope() {
     const t = loadTokens();
     if (!t) return false;
     const scopes = (t.scope || '').split(/\s+/).concat(t.scopes || []);
-    return scopes.includes('https://www.googleapis.com/auth/calendar.events') ||
-           scopes.includes('https://www.googleapis.com/auth/calendar');
+    // Only FULL calendar scope works for all operations (events.insert with sendUpdates, calendarList, etc.)
+    // calendar.events alone causes 403 Insufficient Permission
+    return scopes.includes('https://www.googleapis.com/auth/calendar');
 }
 
 app.get('/api/calendar/status', (req, res) => {
@@ -1041,7 +1042,8 @@ app.get('/api/calendar/debug', async (req, res) => {
         result.raw_scope_field = tokens.scope || null;
         result.raw_scopes_field = tokens.scopes || null;
         result.scopes = (tokens.scope || '').split(/\s+/).concat(tokens.scopes || []).filter(Boolean);
-        result.has_calendar_scope = result.scopes.includes('https://www.googleapis.com/auth/calendar.events') || result.scopes.includes('https://www.googleapis.com/auth/calendar');
+        result.has_calendar_scope = result.scopes.includes('https://www.googleapis.com/auth/calendar');
+        result.has_calendar_events_only = !result.has_calendar_scope && result.scopes.includes('https://www.googleapis.com/auth/calendar.events');
         result.has_drive_scope = result.scopes.includes('https://www.googleapis.com/auth/drive');
         result.token_expiry = tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null;
         // Try actual API call

@@ -410,7 +410,7 @@
                     <div style="font-size:13px; line-height:1.7;">
                         <div><strong>Tokens קיימים:</strong> ${d.tokens_present ? '✅ כן' : '❌ לא'}</div>
                         <div><strong>הרשאת Drive:</strong> ${d.has_drive_scope ? '✅ כן' : '❌ לא'}</div>
-                        <div><strong>הרשאת Calendar:</strong> ${d.has_calendar_scope ? '✅ כן' : '❌ לא'}</div>
+                        <div><strong>הרשאת Calendar מלאה:</strong> ${d.has_calendar_scope ? '✅ כן' : d.has_calendar_events_only ? '⚠️ רק "events" (לא מספיק! צריך מלא)' : '❌ לא'}</div>
                         <div><strong>תוקף token:</strong> ${d.token_expiry || 'לא ידוע'}</div>
                         <div style="margin-top:10px;"><strong>בדיקת API:</strong></div>
                         ${d.calendar_test?.success ? `
