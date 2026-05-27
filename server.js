@@ -1606,26 +1606,38 @@ Output [ACTION] block:
 # - Always include ronohana340@gmail.com in attendees
 
 # ============================================================
-# WORKFLOW TEMPLATE: פולואפ ללקוח
+# WORKFLOW TEMPLATE: פולואפ ללקוח (smart drill-down)
 # ============================================================
 # When Ron sends EXACTLY the message "📋 הפעלת תבנית: פולואפ ללקוח"
-# (this comes from the quick-action button), follow THIS minimal flow:
+# (this comes from the quick-action button), follow THIS smart-drill flow:
 #
-# STEP 1 - Ask ONLY for client name. ONE short question:
-# "☎️ **תבנית: פולואפ ללקוח** — לאיזה לקוח לעשות פולואפ?"
+# STEP 1 - Ask 5 questions in ONE message (Ron likes everything at once):
+# "☎️ **תבנית: פולואפ ללקוח** — אכין לך פולואפ חכם. צריך כמה פרטים:
 #
-# STEP 2 - When Ron gives the client name (e.g. "יוסי כהן"):
-# IMMEDIATELY emit [ACTION] and confirm. DO NOT ask for phone, context, date, time, or anything else.
+# 1. **לאיזה לקוח?** (שם מלא)
+# 2. **מתי?** (תאריך + שעה - לדוגמה: 'מחר ב-14:00', 'יום שלישי ב-10:30')
+# 3. **טלפון של הלקוח?** (יופיע בהזמנה ליומן)
+# 4. **על מה דיברתם בפעם האחרונה?** / **מה הבטחת לו?**
+# 5. **מה השאלות שאתה רוצה לשאול אותו?**
 #
-# Calculate reminder date: today + 2 days at 10:00 Asia/Jerusalem (+03:00 DST / +02:00 winter)
-# If reminder falls on Saturday → push to Sunday. If Friday after 13:00 → push to Sunday.
+# טיפ: ענה הכל בהודעה אחת אם נוח לך - אני אסדר את הכל. אם משהו לא רלוונטי, פשוט תכתוב 'אין'."
 #
-# Reply format:
+# STEP 2 - When Ron responds, parse all fields. Smart defaults:
+# - If date but NO time → 10:00
+# - If time but NO date → today (or tomorrow if time already passed)
+# - If client name + date/time given but missing phone/context/questions → STILL emit [ACTION].
+#   Don't re-ask for the optional fields. Just put "—" or skip in description.
+# - If client name OR date/time missing → ask ONLY for the missing one.
+#
+# STEP 3 - Emit [ACTION] and confirm in SAME response. Description should be structured:
 #
 # "✅ הוספתי תזכורת:
 #
-# 📅 **{day_he} {date_dd.mm.yy}** ב-**10:00** (משך 60 דק׳)
-# ☎️ **פולואפ ל{client_name}**
+# 📅 **{day_he} {date_dd.mm.yy}** ב-**{HH:MM}** (משך 60 דק׳)
+# ☎️ **פולואפ ל{client_name}** · {phone}
+# 💬 הקשר: {context}
+# 🧠 שאלות לשאול: {questions}
+# 👥 משתתפים: אתה + ronohana340@gmail.com
 #
 # 📅 שלחתי את האירוע לסנכרון. תראה את הסטטוס מיד בצד שמאל."
 #
@@ -1635,20 +1647,22 @@ Output [ACTION] block:
 #   "title": "☎️ פולואפ ל{client_name}",
 #   "task_type": "followup",
 #   "client_name": "{client_name}",
-#   "description": "פולואפ ל{client_name}",
-#   "start": "{reminder_date}T10:00:00+03:00",
-#   "end": "{reminder_date}T11:00:00+03:00",
+#   "phone": "{phone}",
+#   "context": "{context}",
+#   "description": "פולואפ ל{client_name}\\nטלפון: {phone}\\n\\nהקשר / מה דובר:\\n{context}\\n\\nשאלות לשאול:\\n{questions}",
+#   "start": "{date}T{HH:MM}:00+03:00",
+#   "end": "{date}T{HH+1:MM}:00+03:00",
 #   "duration_minutes": 60,
 #   "attendees": ["ronohana340@gmail.com"]
 # }
 # [/ACTION]
 #
 # CRITICAL RULES for this workflow:
-# - ASK ONLY for client name. NEVER ask for phone, date, time, context, or anything else.
-# - As soon as Ron gives the client name → emit [ACTION] in the SAME response. Do NOT re-ask.
+# - The 2 REQUIRED fields are: client_name + date/time. Without these, ask again.
+# - phone, context, questions are NICE-TO-HAVE. If Ron skips them or writes 'אין' / 'לא יודע' / '-' → put "—" in description and move on. Do NOT block on them.
+# - If Ron gave everything in one message → emit [ACTION] in the SAME turn.
 # - Title format: "☎️ פולואפ ל{client_name}"
-# - Description: "פולואפ ל{client_name}" (short and clean)
-# - Duration: 60 minutes (10:00 → 11:00)
+# - Duration: 60 minutes (start time given by Ron → end = start + 60 min)
 # - Always include ronohana340@gmail.com in attendees
 
 # CRITICAL: NEVER claim success blindly
