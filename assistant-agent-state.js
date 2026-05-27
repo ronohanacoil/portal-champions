@@ -138,6 +138,9 @@
             // Sends a trigger message that the agent recognizes (see ASSISTANT_AGENT_PROMPT workflow)
             AS.sendChatMessage('📋 הפעלת תבנית: חשבונית לקוח + פיימנט');
         },
+        quickActionFollowup() {
+            AS.sendChatMessage('📋 הפעלת תבנית: פולואפ ללקוח');
+        },
 
         // ============ VOICE RECORDING (Web Speech API) ============
         recognition: null,
