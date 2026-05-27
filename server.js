@@ -1563,57 +1563,33 @@ Output [ACTION] block:
 # WORKFLOW TEMPLATE: חשבונית לקוח + פיימנט
 # ============================================================
 # When Ron sends EXACTLY the message "📋 הפעלת תבנית: חשבונית לקוח + פיימנט"
-# (this comes from the quick-action button in the UI), follow THIS specific flow:
+# (this comes from the quick-action button in the UI), follow THIS minimal flow:
 #
-# STEP 1 - Greet and ask 4 questions in ONE message:
-# Reply with:
-# "💳 **תבנית: חשבונית לקוח + פיימנט** — מעולה, אכין לך תזכורת חכמה. צריך 4 פרטים:
+# STEP 1 - Ask ONLY for client name. Nothing else. ONE short question:
+# "💳 **תבנית: חשבונית לקוח + פיימנט** — בשביל איזה לקוח?"
 #
-# 1. **שם הלקוח?** (כפי שיופיע בחשבונית מס/קבלה)
-# 2. **סכום החשבונית?** (₪, כולל מע״מ)
-# 3. **מתי שלחת ללקוח את קישור התשלום?** (אם היום - תכתוב 'היום'. אם אתמול - 'אתמול')
-# 4. **תיאור השירות בקצרה?** (לדוגמה: 'בניית אתר', 'ייעוץ חודשי', 'תקופה ינואר-מרץ')
+# STEP 2 - When Ron gives the client name (e.g. "יוסי כהן"):
+# IMMEDIATELY emit [ACTION] and confirm. DO NOT ask for amount, date, service, or anything else.
 #
-# טיפ: ענה הכל בשורה אחת אם נוח לך, לדוגמה:
-# 'דני כהן, 1500 שקל, היום, בניית אתר'"
+# Calculate reminder date: today + 2 days at 10:00 Asia/Jerusalem (+03:00 DST / +02:00 winter)
+# If reminder falls on Saturday → push to Sunday. If Friday after 13:00 → push to Sunday.
 #
-# STEP 2 - When Ron answers, parse:
-# - client_name (string)
-# - amount (number, ₪)
-# - sent_date (resolve "היום" → today, "אתמול" → yesterday, else parse date)
-# - service (string, can be empty)
+# Reply format:
 #
-# STEP 3 - Calculate reminder date:
-# reminder_date = sent_date + 2 days, at 10:00:00 Asia/Jerusalem (+03:00 in DST, +02:00 in winter)
-# If reminder falls on Saturday → push to Sunday (no work Saturday in Israel)
-# If reminder falls on Friday after 13:00 → push to Sunday
+# "✅ הוספתי תזכורת:
 #
-# STEP 4 - Confirm + emit [ACTION] in the SAME response. Format:
-#
-# "✅ הכנתי לך תזכורת מורכבת:
-#
-# 📅 **{day_he} {date_dd.mm.yy}** ב-**10:00** (יומיים אחרי השליחה)
-# 💳 **חשבונית + פיימנט: {client_name}** · {amount}₪
-#
-# המשימה כוללת 3 שלבים:
-# 1️⃣ לבדוק שהכסף נכנס מ-PayMe
-# 2️⃣ להכניס את התקבול ל-iCount
-# 3️⃣ להפיק חשבונית מס/קבלה ל-{client_name}
-#
-# 👥 משתתפים: אתה + ronohana340@gmail.com
+# 📅 **{day_he} {date_dd.mm.yy}** ב-**10:00**
+# 💳 **חשבונית + פיימנט: {client_name}**
 #
 # 📅 שלחתי את האירוע לסנכרון. תראה את הסטטוס מיד בצד שמאל."
 #
 # [ACTION]
 # {
 #   "type": "create_calendar_event",
-#   "title": "💳 חשבונית + פיימנט: {client_name} {amount}₪",
+#   "title": "💳 חשבונית + פיימנט: {client_name}",
 #   "task_type": "invoice_payment",
 #   "client_name": "{client_name}",
-#   "amount": {amount},
-#   "service": "{service}",
-#   "sent_date": "{sent_date_iso}",
-#   "description": "משימה מורכבת - 3 שלבים:\\n\\n1. ✅ בדוק שהכסף נכנס מ-PayMe (app.payme.io)\\n2. ✅ הכנס את התקבול ל-iCount\\n3. ✅ הפק חשבונית מס/קבלה ל-{client_name} בסך {amount}₪\\n\\nשירות: {service}\\nנשלח בתאריך: {sent_date_dd.mm.yy}\\nלקוח: {client_name}",
+#   "description": "לבדוק שהכסף נכנס מפיימנט ולהכניס את החשבונית מס קבלה לחשבונאות ולהפיק חשבונית מס קבלה ל{client_name}",
 #   "start": "{reminder_date}T10:00:00+03:00",
 #   "end": "{reminder_date}T10:30:00+03:00",
 #   "duration_minutes": 30,
@@ -1621,11 +1597,11 @@ Output [ACTION] block:
 # }
 # [/ACTION]
 #
-# IMPORTANT for this workflow:
-# - If Ron gives all 4 details in his FIRST follow-up message → emit [ACTION] in ONE turn (don't re-ask)
-# - If a field is missing or unclear → ask ONLY for the missing fields, don't repeat known ones
-# - The title MUST start with 💳 emoji and include client name + amount
-# - The description MUST list the 3 checklist steps so Ron remembers what to do
+# CRITICAL RULES for this workflow:
+# - ASK ONLY for client name. NEVER ask for amount, date, service description, or anything else.
+# - As soon as Ron gives the client name → emit [ACTION] in the SAME response. Do NOT re-ask anything.
+# - The description text MUST be EXACTLY: "לבדוק שהכסף נכנס מפיימנט ולהכניס את החשבונית מס קבלה לחשבונאות ולהפיק חשבונית מס קבלה ל{client_name}" (no extra steps, no checklist, no formatting)
+# - Title format: "💳 חשבונית + פיימנט: {client_name}" (no amount in title)
 # - Always include ronohana340@gmail.com in attendees
 
 # CRITICAL: NEVER claim success blindly
