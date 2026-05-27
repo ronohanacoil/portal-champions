@@ -1559,6 +1559,75 @@ Output [ACTION] block:
 # IMPORTANT: Don't create the event until you have at minimum: title, date, time
 # But DO be efficient - if Ron gave a complete sentence, create it in 1 turn.
 
+# ============================================================
+# WORKFLOW TEMPLATE: חשבונית לקוח + פיימנט
+# ============================================================
+# When Ron sends EXACTLY the message "📋 הפעלת תבנית: חשבונית לקוח + פיימנט"
+# (this comes from the quick-action button in the UI), follow THIS specific flow:
+#
+# STEP 1 - Greet and ask 4 questions in ONE message:
+# Reply with:
+# "💳 **תבנית: חשבונית לקוח + פיימנט** — מעולה, אכין לך תזכורת חכמה. צריך 4 פרטים:
+#
+# 1. **שם הלקוח?** (כפי שיופיע בחשבונית מס/קבלה)
+# 2. **סכום החשבונית?** (₪, כולל מע״מ)
+# 3. **מתי שלחת ללקוח את קישור התשלום?** (אם היום - תכתוב 'היום'. אם אתמול - 'אתמול')
+# 4. **תיאור השירות בקצרה?** (לדוגמה: 'בניית אתר', 'ייעוץ חודשי', 'תקופה ינואר-מרץ')
+#
+# טיפ: ענה הכל בשורה אחת אם נוח לך, לדוגמה:
+# 'דני כהן, 1500 שקל, היום, בניית אתר'"
+#
+# STEP 2 - When Ron answers, parse:
+# - client_name (string)
+# - amount (number, ₪)
+# - sent_date (resolve "היום" → today, "אתמול" → yesterday, else parse date)
+# - service (string, can be empty)
+#
+# STEP 3 - Calculate reminder date:
+# reminder_date = sent_date + 2 days, at 10:00:00 Asia/Jerusalem (+03:00 in DST, +02:00 in winter)
+# If reminder falls on Saturday → push to Sunday (no work Saturday in Israel)
+# If reminder falls on Friday after 13:00 → push to Sunday
+#
+# STEP 4 - Confirm + emit [ACTION] in the SAME response. Format:
+#
+# "✅ הכנתי לך תזכורת מורכבת:
+#
+# 📅 **{day_he} {date_dd.mm.yy}** ב-**10:00** (יומיים אחרי השליחה)
+# 💳 **חשבונית + פיימנט: {client_name}** · {amount}₪
+#
+# המשימה כוללת 3 שלבים:
+# 1️⃣ לבדוק שהכסף נכנס מ-PayMe
+# 2️⃣ להכניס את התקבול ל-iCount
+# 3️⃣ להפיק חשבונית מס/קבלה ל-{client_name}
+#
+# 👥 משתתפים: אתה + ronohana340@gmail.com
+#
+# 📅 שלחתי את האירוע לסנכרון. תראה את הסטטוס מיד בצד שמאל."
+#
+# [ACTION]
+# {
+#   "type": "create_calendar_event",
+#   "title": "💳 חשבונית + פיימנט: {client_name} {amount}₪",
+#   "task_type": "invoice_payment",
+#   "client_name": "{client_name}",
+#   "amount": {amount},
+#   "service": "{service}",
+#   "sent_date": "{sent_date_iso}",
+#   "description": "משימה מורכבת - 3 שלבים:\\n\\n1. ✅ בדוק שהכסף נכנס מ-PayMe (app.payme.io)\\n2. ✅ הכנס את התקבול ל-iCount\\n3. ✅ הפק חשבונית מס/קבלה ל-{client_name} בסך {amount}₪\\n\\nשירות: {service}\\nנשלח בתאריך: {sent_date_dd.mm.yy}\\nלקוח: {client_name}",
+#   "start": "{reminder_date}T10:00:00+03:00",
+#   "end": "{reminder_date}T10:30:00+03:00",
+#   "duration_minutes": 30,
+#   "attendees": ["ronohana340@gmail.com"]
+# }
+# [/ACTION]
+#
+# IMPORTANT for this workflow:
+# - If Ron gives all 4 details in his FIRST follow-up message → emit [ACTION] in ONE turn (don't re-ask)
+# - If a field is missing or unclear → ask ONLY for the missing fields, don't repeat known ones
+# - The title MUST start with 💳 emoji and include client name + amount
+# - The description MUST list the 3 checklist steps so Ron remembers what to do
+# - Always include ronohana340@gmail.com in attendees
+
 # CRITICAL: NEVER claim success blindly
 After emitting [ACTION], the frontend tries to sync to Google Calendar.
 DON'T say "✅ נוסף ליומן" / "תבדוק ביומן זה אמור להופיע" - because YOU don't know if it succeeded.

@@ -110,6 +110,11 @@
 
         /* Input area */
         .input-area { background: var(--bg-card); border-top: 1px solid var(--border); padding: 16px 32px 20px; }
+        .quick-actions { max-width: 900px; margin: 0 auto 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .quick-actions-label { font-size: 11px; color: var(--muted); font-weight: 600; margin-left: 4px; }
+        .quick-action-btn { padding: 7px 12px; background: var(--accent-soft); color: var(--accent-dark); border: 1px solid var(--accent); border-radius: 999px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; transition: all 0.15s; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+        .quick-action-btn:hover { background: var(--accent); color: white; transform: translateY(-1px); }
+        .quick-action-btn:active { transform: translateY(0); }
         .input-wrap { max-width: 900px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
         .chat-input { flex: 1; padding: 12px 16px; border: 1.5px solid var(--border-strong); border-radius: 12px; font-family: inherit; font-size: 14px; resize: none; min-height: 48px; max-height: 160px; line-height: 1.5; background: var(--bg-card); }
         .chat-input:focus { outline: none; border-color: var(--accent); }
@@ -214,6 +219,12 @@
             <div class="chat-area" id="chatArea"></div>
 
             <div class="input-area">
+                <div class="quick-actions">
+                    <span class="quick-actions-label">⚡ פעולות מהירות:</span>
+                    <button class="quick-action-btn" onclick="AS.quickActionInvoicePayme()" title="צור תזכורת לבדיקת תשלום והפקת חשבונית מס/קבלה">
+                        💳 חשבונית לקוח + פיימנט
+                    </button>
+                </div>
                 <div class="input-wrap">
                     <button class="mic-btn" id="micBtn" onclick="AS.toggleRecording()" title="הקלטה קולית (he-IL)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
