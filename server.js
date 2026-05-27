@@ -1417,11 +1417,43 @@ function prepareConversationForApi(messages) {
         if (!Array.isArray(msg.content)) return msg;
         const isLastUser = (msg.role === 'user' && idx === lastUserIdx);
         const newContent = msg.content.map((block) => {
+            // 1) Drop old image attachments
             if (block && block.type === 'image' && !isLastUser) {
                 return {
                     type: 'text',
                     text: '[תמונה שהמשתמש שלח קודם בשיחה — לא מצורפת שוב כדי לחסוך טוקנים]',
                 };
+            }
+            // 2) Shrink heavy tool_result blocks from past turns
+            //    (e.g. read_pdf_invoice returns full PDF as base64 → ~50K-200K tokens each).
+            //    Old tool_results are from previous /api/chat runs and not needed in full -
+            //    keep only useful metadata, drop base64 payloads.
+            if (block && block.type === 'tool_result' && !isLastUser) {
+                const contentStr = typeof block.content === 'string'
+                    ? block.content
+                    : JSON.stringify(block.content);
+                const looksHeavy = contentStr.length > 2000
+                    || /base64_content|"data"\s*:\s*"[A-Za-z0-9+/=]{500,}/.test(contentStr);
+                if (looksHeavy) {
+                    let summary = '[תוצאת כלי קודמת — הוסר תוכן כבד (PDF/base64) לחיסכון בטוקנים]';
+                    try {
+                        const parsed = JSON.parse(contentStr);
+                        if (parsed && typeof parsed === 'object') {
+                            const keep = {};
+                            // Keep small, useful metadata fields - drop base64_content, big rows, etc.
+                            for (const k of ['file_name', 'mime_type', 'size_bytes', 'sheet_name',
+                                'sheet_names', 'name', 'id', 'folder_id', 'file_id', 'new_name',
+                                'old_name', 'row_count', 'total_rows', 'note', 'success', 'error']) {
+                                if (parsed[k] !== undefined) keep[k] = parsed[k];
+                            }
+                            const keepStr = JSON.stringify(keep);
+                            if (Object.keys(keep).length > 0 && keepStr.length < 800) {
+                                summary = `[תוצאה קודמת מצומצמת] ${keepStr}`;
+                            }
+                        }
+                    } catch {}
+                    return { ...block, content: summary };
+                }
             }
             return block;
         });
