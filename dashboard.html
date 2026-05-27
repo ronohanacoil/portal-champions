@@ -1230,6 +1230,9 @@
                     <button class="qa-btn" onclick="qaCompleteMissing()" title="זיהוי חשבוניות שעוד לא סומנו ושיבוצן באקסל">
                         🔄 השלמה
                     </button>
+                    <button class="qa-btn" onclick="qaBankReconciliation()" title="התאמות בנקים - עו״ש וכרטיסי אשראי">
+                        🏦 התאמות בנקים - עו״ש וכרטיסי אשראי
+                    </button>
                 </div>
                 <div class="input-area">
                     <input type="file" id="fileInput" multiple accept="image/*,.pdf,.txt,.csv,.json,.md,.log" style="display:none">
@@ -1667,6 +1670,9 @@
         }
         function qaCompleteMissing() {
             qaSendTrigger('📋 הפעלת פעולה מהירה: השלמה (חשבוניות חסרות)');
+        }
+        function qaBankReconciliation() {
+            qaSendTrigger('📋 הפעלת פעולה מהירה: התאמות בנקים - עו״ש וכרטיסי אשראי');
         }
 
         // ============ SEND MESSAGE ============
