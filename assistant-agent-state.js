@@ -125,24 +125,114 @@
             window.location.href = '/api/google/connect?scope=calendar';
         },
 
-        // Chat helpers
-        quickPhrase(text) {
-            const inp = document.getElementById('chatInput');
-            inp.value = text;
-            inp.focus();
-            inp.scrollTo(inp.scrollWidth, 0);
-        },
-
-        exampleSend(text) {
-            AS.sendChatMessage(text);
-        },
-
         clearChat() {
             AS.chatHistory = [];
             const ca = document.getElementById('chatArea');
-            ca.innerHTML = `<div class="welcome"><div class="icon">🧠</div><h2>שיחה חדשה</h2><p>על מה נעבוד?</p></div>`;
+            ca.innerHTML = '';
             saveState();
             toast('שיחה נוקתה', 'info');
+        },
+
+        // ============ VOICE RECORDING (Web Speech API) ============
+        recognition: null,
+        isRecording: false,
+
+        toggleRecording() {
+            if (AS.isRecording) {
+                AS.stopRecording();
+            } else {
+                AS.startRecording();
+            }
+        },
+
+        startRecording() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                toast('הדפדפן לא תומך בהקלטה קולית. נסה Chrome / Safari.', 'error', 5000);
+                return;
+            }
+            try {
+                AS.recognition = new SpeechRecognition();
+                AS.recognition.lang = 'he-IL';
+                AS.recognition.continuous = true;
+                AS.recognition.interimResults = true;
+                AS.recognition.maxAlternatives = 1;
+
+                const inp = document.getElementById('chatInput');
+                const micBtn = document.getElementById('micBtn');
+                const micStatus = document.getElementById('micStatus');
+                const micStatusText = document.getElementById('micStatusText');
+
+                let finalTranscript = inp.value ? inp.value + ' ' : '';
+                let interimTranscript = '';
+
+                AS.recognition.onstart = () => {
+                    AS.isRecording = true;
+                    micBtn.classList.add('recording');
+                    micStatus.style.display = 'block';
+                    micStatusText.textContent = 'מקליט... דבר עכשיו. לחץ שוב על המיקרופון לעצירה.';
+                };
+
+                AS.recognition.onresult = (event) => {
+                    interimTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript + ' ';
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    inp.value = finalTranscript + interimTranscript;
+                    // Auto-resize
+                    inp.style.height = 'auto';
+                    inp.style.height = Math.min(inp.scrollHeight, 160) + 'px';
+                };
+
+                AS.recognition.onerror = (event) => {
+                    console.warn('Speech error:', event.error);
+                    if (event.error === 'no-speech') {
+                        micStatusText.textContent = 'לא זוהה דיבור. נסה שוב.';
+                    } else if (event.error === 'not-allowed') {
+                        toast('אין הרשאה למיקרופון. בדוק הגדרות דפדפן.', 'error', 5000);
+                        AS.stopRecording();
+                    } else if (event.error === 'aborted') {
+                        // user-initiated stop, ignore
+                    } else {
+                        toast(`שגיאת הקלטה: ${event.error}`, 'warning');
+                    }
+                };
+
+                AS.recognition.onend = () => {
+                    // If still recording (continuous true), restart automatically
+                    if (AS.isRecording) {
+                        try { AS.recognition.start(); } catch (e) { AS.stopRecording(); }
+                    }
+                };
+
+                AS.recognition.start();
+            } catch (e) {
+                toast('שגיאה בהפעלת הקלטה: ' + e.message, 'error');
+                AS.stopRecording();
+            }
+        },
+
+        stopRecording() {
+            AS.isRecording = false;
+            const micBtn = document.getElementById('micBtn');
+            const micStatus = document.getElementById('micStatus');
+            const inp = document.getElementById('chatInput');
+
+            if (micBtn) micBtn.classList.remove('recording');
+            if (micStatus) micStatus.style.display = 'none';
+
+            if (AS.recognition) {
+                try { AS.recognition.stop(); } catch (e) {}
+                AS.recognition = null;
+            }
+
+            // Focus input so user can edit/send
+            if (inp) inp.focus();
         },
 
         handleKeyDown(e) {
@@ -165,9 +255,8 @@
             if (!text || !text.trim()) return;
             text = text.trim();
 
-            // Hide welcome on first message
-            const welcome = document.getElementById('welcome');
-            if (welcome) welcome.remove();
+            // Stop recording if active (so we don't keep capturing while agent works)
+            if (AS.isRecording) AS.stopRecording();
 
             AS.chatHistory.push({ role: 'user', content: text });
             AS._renderChat();
@@ -294,8 +383,6 @@
         // Render chat history
         _renderChat() {
             const ca = document.getElementById('chatArea');
-            const welcome = document.getElementById('welcome');
-            if (welcome && AS.chatHistory.length > 0) welcome.remove();
 
             // Build HTML
             const msgs = AS.chatHistory.map(m => {
