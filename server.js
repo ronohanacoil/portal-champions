@@ -1003,6 +1003,7 @@ app.post('/api/calendar/create-event', async (req, res) => {
         };
 
         const calendar = getCalendar();
+        console.log(`📅 Creating calendar event: ${title} at ${start}, attendees: ${att.join(', ')}`);
         const result = await calendar.events.insert({
             calendarId: 'primary',
             resource: event,
@@ -1017,9 +1018,59 @@ app.post('/api/calendar/create-event', async (req, res) => {
             attendees: att,
         });
     } catch (err) {
-        console.error('Calendar create event error:', err.message);
-        res.json({ success: false, error: err.message });
+        console.error('❌ Calendar create event error:', err.message);
+        console.error('   Code:', err.code, '| Errors:', JSON.stringify(err.errors));
+        if (err.response?.data) console.error('   Response:', JSON.stringify(err.response.data));
+        res.json({
+            success: false,
+            error: err.message,
+            error_code: err.code || null,
+            error_details: err.errors || err.response?.data || null,
+        });
     }
+});
+
+// Debug endpoint - shows EXACTLY what's wrong with calendar
+app.get('/api/calendar/debug', async (req, res) => {
+    const result = { tokens_present: false, scopes: [], calendar_test: null };
+    try {
+        const tokens = loadTokens();
+        result.tokens_present = !!tokens;
+        if (!tokens) { result.error = 'No tokens'; return res.json(result); }
+        // Show actual scopes
+        result.raw_scope_field = tokens.scope || null;
+        result.raw_scopes_field = tokens.scopes || null;
+        result.scopes = (tokens.scope || '').split(/\s+/).concat(tokens.scopes || []).filter(Boolean);
+        result.has_calendar_scope = result.scopes.includes('https://www.googleapis.com/auth/calendar.events') || result.scopes.includes('https://www.googleapis.com/auth/calendar');
+        result.has_drive_scope = result.scopes.includes('https://www.googleapis.com/auth/drive');
+        result.token_expiry = tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null;
+        // Try actual API call
+        try {
+            const calendar = getCalendar();
+            const listResult = await calendar.calendarList.list({ maxResults: 5 });
+            result.calendar_test = {
+                success: true,
+                calendars: (listResult.data.items || []).map(c => ({ id: c.id, summary: c.summary, primary: c.primary })),
+            };
+        } catch (apiErr) {
+            result.calendar_test = {
+                success: false,
+                error: apiErr.message,
+                code: apiErr.code,
+                full_error: apiErr.response?.data || null,
+            };
+        }
+    } catch (err) {
+        result.fatal_error = err.message;
+    }
+    res.json(result);
+});
+
+// Retry creating a calendar event for a locally-saved event
+app.post('/api/calendar/retry-event', async (req, res) => {
+    // Same logic as create-event - frontend just calls this with the saved event data
+    req.url = '/api/calendar/create-event';
+    return app._router.handle(req, res, () => {});
 });
 
 // List upcoming events
@@ -1505,6 +1556,17 @@ Output [ACTION] block:
 
 # IMPORTANT: Don't create the event until you have at minimum: title, date, time
 # But DO be efficient - if Ron gave a complete sentence, create it in 1 turn.
+
+# CRITICAL: NEVER claim success blindly
+After emitting [ACTION], the frontend tries to sync to Google Calendar.
+DON'T say "✅ נוסף ליומן" / "תבדוק ביומן זה אמור להופיע" - because YOU don't know if it succeeded.
+
+INSTEAD, say:
+"📅 שלחתי את האירוע לסנכרון. תראה את הסטטוס מיד בצד שמאל (אם תראה ✅ ב-Calendar = נכנס. אם תראה 💾 לוקאלי = לא נכנס - תגיד לי ואני אנסה שוב)."
+
+If Ron tells you something didn't sync ("לא מופיע", "לא נכנס") - DON'T make excuses. Don't say "סנכרון לא הושלם, תרענן" or "תאריך לא נכון בתצוגה".
+Instead, say honestly: "סנכרון נכשל. בוא אנסה שוב או אבדוק את החיבור. תוכל לעבור על calendar.google.com/r/eventedit?text=... בעצמך."
+Then emit a new [ACTION] to retry, or suggest the user clicks the yellow status bar to reconnect Google.
 
 Example interaction:
 

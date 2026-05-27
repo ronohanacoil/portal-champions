@@ -344,40 +344,96 @@
             };
 
             // Try to create real Google Calendar event
-            try {
-                const r = await fetch('/api/calendar/create-event', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: localEvent.title,
-                        description: localEvent.description + (localEvent.phone ? `\n\nטלפון: ${localEvent.phone}` : '') + (localEvent.context ? `\n\nהקשר: ${localEvent.context}` : ''),
-                        start: localEvent.start,
-                        end: localEvent.end,
-                        duration_minutes: localEvent.duration,
-                        attendees: localEvent.attendees,
-                    }),
-                });
-                if (r.ok) {
-                    const d = await r.json();
-                    if (d.success) {
-                        localEvent.syncedToCalendar = true;
-                        localEvent.calendarEventId = d.event_id;
-                        localEvent.googleLink = d.html_link;
-                        toast(`📅 נוסף ל-Google Calendar: ${localEvent.title}`, 'success', 5000);
-                    } else if (d.error) {
-                        toast(`💾 נשמר לוקאלית: ${localEvent.title} (${d.error})`, 'warning', 5000);
-                    }
-                } else {
-                    toast(`💾 נשמר לוקאלית: ${localEvent.title}`, 'warning', 4000);
-                }
-            } catch (e) {
-                toast(`💾 נשמר לוקאלית: ${localEvent.title}`, 'warning', 4000);
-            }
+            const syncResult = await AS._syncToCalendar(localEvent);
+            localEvent.lastSyncError = syncResult.error || null;
 
             STATE_AS.events.unshift(localEvent);
             saveState();
             AS.renderSidebar();
             return true;
+        },
+
+        // Sync a single event to Google Calendar
+        async _syncToCalendar(ev) {
+            try {
+                const r = await fetch('/api/calendar/create-event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: ev.title,
+                        description: (ev.description || '') + (ev.phone ? `\n\nטלפון: ${ev.phone}` : '') + (ev.context ? `\n\nהקשר: ${ev.context}` : ''),
+                        start: ev.start,
+                        end: ev.end,
+                        duration_minutes: ev.duration,
+                        attendees: ev.attendees,
+                    }),
+                });
+                const d = await r.json().catch(() => ({ success: false, error: `HTTP ${r.status}` }));
+                if (r.ok && d.success) {
+                    ev.syncedToCalendar = true;
+                    ev.calendarEventId = d.event_id;
+                    ev.googleLink = d.html_link;
+                    ev.lastSyncError = null;
+                    toast(`📅 נוסף ל-Google Calendar: ${ev.title}`, 'success', 5000);
+                    return { ok: true };
+                } else {
+                    const errMsg = d.error || 'שגיאה לא ידועה';
+                    toast(`❌ סנכרון נכשל: ${errMsg.slice(0, 80)}`, 'error', 7000);
+                    return { ok: false, error: errMsg, details: d.error_details };
+                }
+            } catch (e) {
+                toast(`❌ שגיאת רשת: ${e.message}`, 'error', 5000);
+                return { ok: false, error: e.message };
+            }
+        },
+
+        // Manual retry from sidebar / details modal
+        async retrySync(id) {
+            const ev = STATE_AS.events.find(e => e.id === id);
+            if (!ev) return;
+            if (ev.syncedToCalendar) { toast('כבר מסונכרן ✅', 'info'); return; }
+            toast('🔄 מנסה לסנכרן...', 'info', 2000);
+            const result = await AS._syncToCalendar(ev);
+            ev.lastSyncError = result.error || null;
+            saveState();
+            AS.renderSidebar();
+            AS.closeModal();
+        },
+
+        // Diagnose calendar connection
+        async diagnoseCalendar() {
+            toast('🔍 בודק חיבור Calendar...', 'info', 2000);
+            try {
+                const r = await fetch('/api/calendar/debug');
+                const d = await r.json();
+                const html = `
+                    <div style="font-size:13px; line-height:1.7;">
+                        <div><strong>Tokens קיימים:</strong> ${d.tokens_present ? '✅ כן' : '❌ לא'}</div>
+                        <div><strong>הרשאת Drive:</strong> ${d.has_drive_scope ? '✅ כן' : '❌ לא'}</div>
+                        <div><strong>הרשאת Calendar:</strong> ${d.has_calendar_scope ? '✅ כן' : '❌ לא'}</div>
+                        <div><strong>תוקף token:</strong> ${d.token_expiry || 'לא ידוע'}</div>
+                        <div style="margin-top:10px;"><strong>בדיקת API:</strong></div>
+                        ${d.calendar_test?.success ? `
+                            <div style="background:var(--success-soft); color:var(--success); padding:8px 10px; border-radius:6px; margin-top:4px;">
+                                ✅ הצליח! מצאתי ${d.calendar_test.calendars.length} יומנים:
+                                ${d.calendar_test.calendars.map(c => `<br>· ${c.summary} ${c.primary ? '(ראשי)' : ''}`).join('')}
+                            </div>
+                        ` : `
+                            <div style="background:var(--error-soft); color:var(--error); padding:8px 10px; border-radius:6px; margin-top:4px;">
+                                ❌ נכשל: <strong>${d.calendar_test?.error || 'unknown'}</strong>
+                                ${d.calendar_test?.code ? `<br>קוד: ${d.calendar_test.code}` : ''}
+                            </div>
+                        `}
+                        <div style="margin-top:10px; font-size:11px; color:var(--muted)">Scopes (raw): ${(d.scopes||[]).join(', ').slice(0, 200) || 'אין'}</div>
+                    </div>
+                `;
+                openModal('🔍 דיאגנוסטיקה - Google Calendar', html, [
+                    { label: 'חבר מחדש את Google', class: 'primary', onclick: () => { closeModal(); window.location.href = '/api/google/connect'; } },
+                    { label: 'סגור', onclick: closeModal },
+                ]);
+            } catch (e) {
+                toast('שגיאה בדיאגנוסטיקה: ' + e.message, 'error');
+            }
         },
 
         // Render chat history
@@ -446,6 +502,18 @@
         viewEvent(id) {
             const ev = STATE_AS.events.find(e => e.id === id);
             if (!ev) return;
+            const syncStatus = ev.syncedToCalendar
+                ? `<div style="background:var(--success-soft); color:var(--success); padding:10px 12px; border-radius:8px;">✅ <strong>מסונכרן ל-Google Calendar</strong>${ev.googleLink ? `<br><a href="${ev.googleLink}" target="_blank" style="color:var(--accent)">פתח ביומן Google →</a>` : ''}</div>`
+                : `<div style="background:var(--warning-soft); color:var(--warning); padding:10px 12px; border-radius:8px;">💾 <strong>לא מסונכרן ליומן (לוקאלי בלבד)</strong>${ev.lastSyncError ? `<br><span style="font-size:11px;">סיבה: ${escHtml(ev.lastSyncError)}</span>` : ''}</div>`;
+
+            const buttons = [
+                { label: 'מחק', class: 'danger', onclick: () => { STATE_AS.events = STATE_AS.events.filter(e => e.id !== id); saveState(); AS.renderSidebar(); closeModal(); toast('האירוע נמחק', 'info'); }},
+            ];
+            if (!ev.syncedToCalendar) {
+                buttons.push({ label: '🔄 סנכרן ליומן עכשיו', class: 'primary', onclick: () => AS.retrySync(id) });
+            }
+            buttons.push({ label: 'סגור', onclick: closeModal });
+
             openModal(ev.title, `
                 <div style="font-size:13px; line-height:1.8;">
                     <div style="display:flex; gap:8px;"><strong style="color:var(--muted); min-width:80px;">📅 מתי:</strong><span>${fmtDate(ev.start)}</span></div>
@@ -454,14 +522,9 @@
                     ${ev.context ? `<div style="display:flex; gap:8px;"><strong style="color:var(--muted); min-width:80px;">💬 הקשר:</strong><span>${escHtml(ev.context)}</span></div>` : ''}
                     ${ev.description ? `<div style="display:flex; gap:8px; margin-top:8px;"><strong style="color:var(--muted); min-width:80px;">📝 פרטים:</strong><span>${escHtml(ev.description).replace(/\n/g,'<br>')}</span></div>` : ''}
                     <div style="display:flex; gap:8px; margin-top:8px;"><strong style="color:var(--muted); min-width:80px;">👤 משתתפים:</strong><span>${(ev.attendees||[]).join(', ')}</span></div>
-                    <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); font-size:12px;">
-                        ${ev.syncedToCalendar ? `✅ <strong style="color:var(--success)">נוסף ל-Google Calendar</strong>${ev.googleLink ? `<br><a href="${ev.googleLink}" target="_blank" style="color:var(--accent)">פתח ביומן Google →</a>` : ''}` : `💾 נשמר לוקאלית בלבד`}
-                    </div>
+                    <div style="margin-top:14px;">${syncStatus}</div>
                 </div>
-            `, [
-                { label: 'מחק', class: 'danger', onclick: () => { STATE_AS.events = STATE_AS.events.filter(e => e.id !== id); saveState(); AS.renderSidebar(); closeModal(); toast('האירוע נמחק', 'info'); }},
-                { label: 'סגור', onclick: closeModal },
-            ]);
+            `, buttons);
         },
 
         resetDemo() {
