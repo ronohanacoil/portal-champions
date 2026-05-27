@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>סוכן מכירות - Portal Champions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #f7f8fa; --bg-card: #ffffff; --bg-hover: #f0f2f5;
+            --sidebar-bg: #ffffff; --sidebar-active: #d1fae5;
+            --text: #0f172a; --text-soft: #475569; --muted: #94a3b8;
+            --border: #e5e7eb; --border-strong: #cbd5e1;
+            --accent: #10b981; --accent-soft: #d1fae5;
+            --success: #10b981; --success-soft: #d1fae5;
+            --warning: #f59e0b; --warning-soft: #fef3c7;
+            --error: #ef4444; --error-soft: #fee2e2;
+            --info: #3b82f6; --info-soft: #dbeafe;
+            --hot: #f97316; --hot-soft: #ffedd5;
+            --fire: #dc2626; --fire-soft: #fee2e2;
+        }
+        body { font-family: 'Heebo', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased; font-size: 14px; }
+        .layout { display: grid; grid-template-columns: 250px 1fr; height: 100vh; }
+
+        .sidebar { background: var(--sidebar-bg); border-left: 1px solid var(--border); padding: 16px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+        .sidebar-header { display: flex; align-items: center; gap: 10px; padding: 8px 8px 16px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+        .back-btn { background: transparent; border: 1px solid var(--border); color: var(--text-soft); width: 28px; height: 28px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+        .back-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+        .back-btn svg { width: 14px; height: 14px; }
+        .sidebar-title { font-size: 14px; font-weight: 700; }
+        .sidebar-subtitle { font-size: 10px; color: var(--muted); margin-top: 2px; }
+        .nav-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; padding: 10px 12px 5px; }
+        .nav-tab { display: flex; align-items: center; gap: 10px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-soft); border-radius: 8px; cursor: pointer; transition: all 0.12s; border: none; background: transparent; font-family: inherit; text-align: right; width: 100%; }
+        .nav-tab:hover { background: var(--bg-hover); color: var(--text); }
+        .nav-tab.active { background: var(--sidebar-active); color: var(--accent); font-weight: 600; }
+        .nav-tab .nav-icon { font-size: 15px; line-height: 1; flex-shrink: 0; width: 18px; text-align: center; }
+        .nav-tab .nav-badge { margin-right: auto; background: var(--accent); color: white; font-size: 9px; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
+        .nav-tab .nav-badge.future { background: var(--bg-hover); color: var(--muted); }
+        .nav-tab .nav-badge.warn { background: var(--warning); }
+        .nav-tab .nav-badge.err { background: var(--error); }
+        .nav-tab .nav-badge.hot { background: var(--hot); }
+        .nav-tab .nav-badge.fire { background: var(--fire); }
+
+        .main { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+        .topbar { background: var(--bg-card); padding: 14px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .topbar-title h1 { font-size: 18px; font-weight: 700; }
+        .topbar-title p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+        .btn { padding: 8px 14px; font-size: 12px; font-weight: 600; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-family: inherit; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+        .btn:hover { background: var(--bg-hover); }
+        .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+        .btn.primary:hover { background: #059669; }
+        .btn.success { background: var(--success); color: white; border-color: var(--success); }
+        .btn.danger { background: var(--error); color: white; border-color: var(--error); }
+        .btn.hot { background: var(--hot); color: white; border-color: var(--hot); }
+        .btn.fire { background: var(--fire); color: white; border-color: var(--fire); }
+        .btn.sm { padding: 5px 10px; font-size: 11px; }
+        .btn.xs { padding: 3px 7px; font-size: 10px; }
+
+        .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        .tab-panel { animation: fadeIn 0.2s ease-out; }
+
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+        .card-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .card-title { font-size: 13px; font-weight: 600; }
+        .card-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+        .grid { display: grid; gap: 14px; }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-cols-5 { grid-template-columns: repeat(5, 1fr); }
+        .grid-cols-6 { grid-template-columns: repeat(6, 1fr); }
+        @media (max-width: 1280px) { .grid-cols-5, .grid-cols-6 { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 1024px) { .grid-cols-4, .grid-cols-5, .grid-cols-6 { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 768px) { .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 { grid-template-columns: repeat(2, 1fr); } .grid-cols-2 { grid-template-columns: 1fr; } }
+
+        .kpi { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+        .kpi-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 8px; }
+        .kpi-value { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+        .kpi-trend { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 5px; }
+        .kpi-trend.up { background: var(--success-soft); color: var(--success); }
+        .kpi-trend.down { background: var(--error-soft); color: var(--error); }
+        .kpi-trend.flat { background: var(--bg-hover); color: var(--muted); }
+        .kpi-meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+        .ai-banner { background: linear-gradient(135deg, #d1fae5 0%, #ffffff 50%, #ecfccb 100%); border: 1px solid var(--accent-soft); border-radius: 14px; padding: 18px 22px; margin-bottom: 20px; }
+        .ai-banner-h { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ai-banner-h::before { content: '🎯'; font-size: 14px; }
+        .ai-insight { font-size: 13.5px; line-height: 1.7; margin-bottom: 6px; }
+        .ai-insight + .ai-insight { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+        .ai-insight strong { color: var(--accent); font-weight: 700; }
+
+        .table-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .table-toolbar { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .table-toolbar h3 { font-size: 14px; font-weight: 700; }
+        .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .filter-input, .filter-select { padding: 6px 10px; font-size: 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-card); color: var(--text); font-family: inherit; min-width: 120px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+        thead { background: #fafbfc; }
+        th, td { text-align: right; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+        th { font-weight: 600; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+        tbody tr:hover { background: #fafbfc; }
+        td.num { font-variant-numeric: tabular-nums; font-weight: 500; }
+
+        .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+        .pill.success { background: var(--success-soft); color: var(--success); }
+        .pill.warning { background: var(--warning-soft); color: var(--warning); }
+        .pill.error { background: var(--error-soft); color: var(--error); }
+        .pill.info { background: var(--info-soft); color: var(--info); }
+        .pill.neutral { background: var(--bg-hover); color: var(--text-soft); }
+        .pill.accent { background: var(--accent-soft); color: var(--accent); }
+        .pill.hot { background: var(--hot-soft); color: var(--hot); }
+        .pill.fire { background: var(--fire-soft); color: var(--fire); }
+
+        .action-icons { display: inline-flex; gap: 4px; }
+        .icon-action { background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; cursor: pointer; font-size: 11px; color: var(--text-soft); transition: all 0.15s; }
+        .icon-action:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .action-card { background: var(--bg-card); border: 1px solid var(--border); border-right: 4px solid var(--accent); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+        .action-card.heat-hot { border-right-color: var(--hot); }
+        .action-card.heat-fire { border-right-color: var(--fire); }
+        .action-card.heat-warning { border-right-color: var(--warning); }
+        .action-card-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+        .action-card-title { font-weight: 700; font-size: 13.5px; }
+        .action-card-desc { font-size: 12.5px; color: var(--text-soft); line-height: 1.55; }
+        .action-card-meta { display: flex; gap: 12px; margin-top: 10px; font-size: 11px; color: var(--muted); }
+        .action-card-buttons { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+
+        .section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; margin-top: 8px; }
+        .placeholder-zone { background: var(--bg-card); border: 2px dashed var(--border-strong); border-radius: 12px; padding: 40px 20px; text-align: center; color: var(--muted); }
+        .placeholder-zone .ph-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.6; }
+        .placeholder-zone .ph-title { font-size: 14px; font-weight: 600; color: var(--text-soft); margin-bottom: 4px; }
+        .placeholder-zone .ph-sub { font-size: 12px; }
+
+        .disclaimer { background: var(--warning-soft); border: 1px solid #fbbf24; border-radius: 8px; padding: 10px 14px; font-size: 11.5px; color: #92400e; margin: 10px 0 16px; display: flex; gap: 8px; align-items: flex-start; }
+        .disclaimer::before { content: '⚠️'; flex-shrink: 0; }
+
+        .subtabs { display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .subtab { padding: 8px 14px; font-size: 12.5px; background: transparent; border: none; cursor: pointer; color: var(--text-soft); border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: inherit; font-weight: 500; }
+        .subtab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+        .list-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .list-item:last-child { border-bottom: none; }
+        .list-item-text { flex: 1; }
+        .list-item-title { font-weight: 600; }
+        .list-item-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+        /* Pipeline Kanban */
+        .pipeline { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; overflow-x: auto; }
+        @media (max-width: 1200px) { .pipeline { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 768px) { .pipeline { grid-template-columns: repeat(2, 1fr); } }
+        .pipe-col { background: var(--bg-hover); border-radius: 10px; padding: 8px; min-height: 200px; min-width: 180px; }
+        .pipe-col-h { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; font-size: 10px; font-weight: 700; color: var(--text-soft); text-transform: uppercase; margin-bottom: 6px; }
+        .pipe-col-count { background: var(--bg-card); padding: 2px 6px; border-radius: 8px; font-size: 9px; }
+        .pipe-col-value { font-size: 10px; color: var(--success); font-weight: 600; }
+        .pipe-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s; }
+        .pipe-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .pipe-card-name { font-size: 12px; font-weight: 600; }
+        .pipe-card-val { font-size: 13px; font-weight: 700; color: var(--success); margin-top: 4px; }
+        .pipe-card-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 10px; color: var(--muted); }
+
+        /* Heat badge */
+        .heat-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; }
+        .heat-cold { background: #dbeafe; color: #1e40af; }
+        .heat-warm { background: #fef3c7; color: #92400e; }
+        .heat-hot { background: #ffedd5; color: #c2410c; }
+        .heat-fire { background: #fee2e2; color: #b91c1c; }
+        .heat-vip { background: linear-gradient(90deg, #fbbf24, #f59e0b); color: white; }
+        .heat-bad { background: #f3f4f6; color: var(--muted); }
+
+        /* Journey Builder */
+        .journey { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; }
+        .journey-stage { min-width: 200px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; position: relative; }
+        .journey-stage::after { content: '→'; position: absolute; left: -16px; top: 50%; transform: translateY(-50%); color: var(--accent); font-size: 20px; font-weight: 700; }
+        .journey-stage:last-child::after { display: none; }
+        .journey-num { display: inline-flex; width: 22px; height: 22px; background: var(--accent); color: white; border-radius: 50%; font-size: 11px; font-weight: 700; align-items: center; justify-content: center; margin-bottom: 8px; }
+        .journey-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+        .journey-desc { font-size: 11px; color: var(--text-soft); line-height: 1.5; }
+
+        /* Message preview */
+        .msg-preview { background: #f0fdf4; border: 1px solid #bbf7d0; border-right: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; margin: 6px 0; font-size: 12px; line-height: 1.6; }
+        .msg-preview.bad { background: #fef2f2; border-color: #fecaca; border-right-color: var(--error); }
+        .msg-preview-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .msg-preview.bad .msg-preview-h { color: var(--error); }
+        .msg-preview .msg-preview-h { color: var(--accent); }
+
+        /* ============ MODAL ============ */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; animation: fadeIn 0.15s ease-out; }
+        .modal-overlay.visible { display: flex; }
+        .modal-box { background: var(--bg-card); border-radius: 14px; min-width: 380px; max-width: 760px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.25); display: flex; flex-direction: column; }
+        .modal-h { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .modal-h h3 { font-size: 16px; font-weight: 700; }
+        .modal-close { background: transparent; border: none; font-size: 22px; color: var(--muted); cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 6px; }
+        .modal-close:hover { background: var(--bg-hover); color: var(--text); }
+        .modal-body { padding: 20px 22px; }
+        .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-soft); margin-bottom: 5px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 13px; background: var(--bg); color: var(--text); }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--accent); background: var(--bg-card); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+        /* TOAST */
+        .toast-container { position: fixed; top: 20px; left: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .toast { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; min-width: 240px; max-width: 380px; pointer-events: auto; }
+        .toast.success { border-right: 3px solid var(--success); }
+        .toast.error { border-right: 3px solid var(--error); }
+        .toast.warning { border-right: 3px solid var(--warning); }
+        .toast.info { border-right: 3px solid var(--accent); }
+
+        .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { color: var(--muted); font-weight: 500; }
+        .detail-value { font-weight: 600; }
+
+        /* Integration cards */
+        .int-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+        .int-card-h { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .int-card-icon { font-size: 24px; }
+        .int-card-name { font-weight: 700; font-size: 14px; }
+        .int-card-stat { display: flex; justify-content: space-between; padding: 6px 0; font-size: 11px; border-top: 1px dashed var(--border); margin-top: 10px; }
+
+        /* Chat */
+        .chat-shell { display: grid; grid-template-columns: 1fr 280px; gap: 16px; height: calc(100vh - 180px); }
+        @media (max-width: 1024px) { .chat-shell { grid-template-columns: 1fr; height: auto; } }
+        .chat-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+        .chat-head { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(90deg, #d1fae5, #ffffff); }
+        .chat-msgs { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-msg { padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.65; max-width: 85%; animation: fadeIn 0.18s ease-out; }
+        .chat-msg.bot { background: var(--bg-hover); align-self: flex-start; }
+        .chat-msg.user { background: var(--accent); color: white; align-self: flex-end; }
+        .chat-msg.bot strong { color: var(--accent); }
+        .chat-msg .agent-action-card { background: var(--bg-card); border: 1px solid var(--success-soft); border-right: 3px solid var(--success); border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 12px; }
+        .chat-msg .agent-action-card strong { color: var(--success); display: block; margin-bottom: 4px; }
+        .chat-input-row { padding: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+        .chat-input-row input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 13px; }
+        .chat-typing { display: inline-flex; gap: 4px; padding: 12px 14px; background: var(--bg-hover); border-radius: 10px; align-self: flex-start; }
+        .chat-typing span { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: typing 1.4s infinite; }
+        .chat-typing span:nth-child(2) { animation-delay: 0.15s; }
+        .chat-typing span:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes typing { 0%, 60%, 100% { opacity: 0.3; } 30% { opacity: 1; } }
+
+        .progress-bar { width: 100%; height: 8px; background: var(--bg-hover); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); transition: width 0.4s; }
+
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { position: fixed; top: 0; right: 0; bottom: 0; width: 250px; transform: translateX(100%); transition: transform 0.2s; z-index: 100; }
+            .sidebar.open { transform: translateX(0); }
+            .mobile-menu-btn { display: inline-flex !important; }
+        }
+        .mobile-menu-btn { display: none; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="back-btn" onclick="window.location.href='/dashboard.html'" title="חזרה לדאשבורד">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div>
+                    <div class="sidebar-title">סוכן מכירות 🎯</div>
+                    <div class="sidebar-subtitle">מנהל מכירות דיגיטלי</div>
+                </div>
+            </div>
+
+            <div class="nav-group-label">סקירה</div>
+            <button class="nav-tab active" data-tab="dashboard"><span class="nav-icon">📊</span><span>דאשבורד מכירות</span></button>
+
+            <div class="nav-group-label">לידים</div>
+            <button class="nav-tab" data-tab="leads"><span class="nav-icon">👥</span><span>ניהול לידים</span><span class="nav-badge fire">47</span></button>
+            <button class="nav-tab" data-tab="scoring"><span class="nav-icon">🔥</span><span>ציון וחום ליד</span></button>
+            <button class="nav-tab" data-tab="leadjourney"><span class="nav-icon">🛤️</span><span>מסע ליד</span></button>
+            <button class="nav-tab" data-tab="custjourney"><span class="nav-icon">🤝</span><span>מסע לקוח</span></button>
+            <button class="nav-tab" data-tab="revival"><span class="nav-icon">💫</span><span>החייאת לידים</span></button>
+
+            <div class="nav-group-label">תסריטים</div>
+            <button class="nav-tab" data-tab="callscripts"><span class="nav-icon">📞</span><span>תסריטי שיחה</span></button>
+            <button class="nav-tab" data-tab="meetingscripts"><span class="nav-icon">🎭</span><span>תסריטי פגישה</span></button>
+            <button class="nav-tab" data-tab="messages"><span class="nav-icon">💬</span><span>מסרים לפי סטטוס</span></button>
+
+            <div class="nav-group-label">סגירה</div>
+            <button class="nav-tab" data-tab="pipeline"><span class="nav-icon">🎯</span><span>פייפליין עסקאות</span></button>
+            <button class="nav-tab" data-tab="proposals"><span class="nav-icon">📄</span><span>הצעות מחיר</span><span class="nav-badge warn">11</span></button>
+            <button class="nav-tab" data-tab="followups"><span class="nav-icon">🔁</span><span>פולואפים</span></button>
+            <button class="nav-tab" data-tab="objections"><span class="nav-icon">🛡️</span><span>התנגדויות</span></button>
+            <button class="nav-tab" data-tab="lost"><span class="nav-icon">📉</span><span>סיבות אי סגירה</span></button>
+
+            <div class="nav-group-label">צוות + AI</div>
+            <button class="nav-tab" data-tab="reps"><span class="nav-icon">🧑‍💼</span><span>ניהול נציגים</span></button>
+            <button class="nav-tab" data-tab="automations"><span class="nav-icon">⚡</span><span>אוטומציות מכירה</span></button>
+            <button class="nav-tab" data-tab="playbook"><span class="nav-icon">📖</span><span>ספר מכירות</span></button>
+            <button class="nav-tab" data-tab="chat"><span class="nav-icon">🤖</span><span>צ׳אט מכירות</span></button>
+            <button class="nav-tab" data-tab="reports"><span class="nav-icon">📑</span><span>דוחות מכירה</span></button>
+
+            <div class="nav-group-label">תצורה</div>
+            <button class="nav-tab" data-tab="biztype"><span class="nav-icon">🏢</span><span>התאמה לסוג עסק</span></button>
+            <button class="nav-tab" data-tab="integrations"><span class="nav-icon">🔌</span><span>אינטגרציות עתידיות</span><span class="nav-badge future">בקרוב</span></button>
+            <button class="nav-tab" data-tab="settings"><span class="nav-icon">⚙️</span><span>הגדרות מכירה</span></button>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div class="topbar-title">
+                    <h1 id="pageTitle">דאשבורד מכירות</h1>
+                    <p id="pageSubtitle">מנהל המכירות הדיגיטלי שמוביל לידים לסגירה</p>
+                </div>
+                <div class="topbar-actions">
+                    <button class="btn mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+                    <button class="btn" onclick="SA.resetDemo()" title="איפוס נתוני דמו">🔄</button>
+                    <button class="btn primary" onclick="SA.quickAdd()">+ ליד / פעולה</button>
+                </div>
+            </header>
+            <div class="content" id="content"></div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <div class="modal-h"><h3 id="modalTitle">כותרת</h3><button class="modal-close" onclick="SA.closeModal()">&times;</button></div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer" id="modalFooter"></div>
+        </div>
+    </div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        if (sessionStorage.getItem('pc_authenticated') !== 'true') window.location.href = '/login.html';
+
+        const TAB_META = {
+            dashboard: { title: 'דאשבורד מכירות', subtitle: 'מנהל המכירות הדיגיטלי שמוביל לידים לסגירה' },
+            leads: { title: 'ניהול לידים', subtitle: 'כל הלידים במקום אחד עם סינון, סקירה וטיפול מהיר' },
+            scoring: { title: 'ציון וחום ליד', subtitle: 'איזה ליד דורש טיפול עכשיו' },
+            leadjourney: { title: 'מסע ליד', subtitle: 'מה קורה מהרגע שהליד נכנס ועד שהוא סוגר' },
+            custjourney: { title: 'מסע לקוח', subtitle: 'מה קורה אחרי הפגישה - איך סוגרים' },
+            revival: { title: 'החייאת לידים', subtitle: 'כסף שכבר נמצא במערכת ומחכה' },
+            callscripts: { title: 'תסריטי שיחה', subtitle: 'מה להגיד בכל שלב, בלי להישמע רובוטי' },
+            meetingscripts: { title: 'תסריטי פגישה', subtitle: 'מבנה פגישה שמוביל לסגירה' },
+            messages: { title: 'מסרים לפי סטטוס', subtitle: 'ספריית הודעות חכמות לכל סיטואציה' },
+            pipeline: { title: 'פייפליין עסקאות', subtitle: 'כל העסקאות בכל שלב, עם כסף וסיכויים' },
+            proposals: { title: 'הצעות מחיר וסגירה', subtitle: 'השלב הרגיש - הצעה ניתנה, צריך לסגור' },
+            followups: { title: 'פולואפים', subtitle: 'מערכת פולואפ חכמה שלא נשמעת מתחננת' },
+            objections: { title: 'התנגדויות', subtitle: 'איך לענות על "יקר לי", "צריך לחשוב" וכל השאר' },
+            lost: { title: 'סיבות אי סגירה', subtitle: 'למה עסקאות לא נסגרות - וכיצד לתקן' },
+            reps: { title: 'ניהול נציגים', subtitle: 'ביצועים, עומסים, ותובנות לכל נציג' },
+            automations: { title: 'אוטומציות מכירה', subtitle: 'טריגרים → תנאים → פעולות (UI בלבד)' },
+            playbook: { title: 'ספר מכירות', subtitle: 'התשתית של מערכת המכירות שלך' },
+            chat: { title: 'צ׳אט מכירות', subtitle: 'שאל את הסוכן כל שאלה על המכירות' },
+            reports: { title: 'דוחות מכירה', subtitle: 'דוחות יומיים, שבועיים, חודשיים' },
+            biztype: { title: 'התאמה לסוג עסק', subtitle: 'מסעות וכלים מותאמים לפי תחום' },
+            integrations: { title: 'אינטגרציות עתידיות', subtitle: 'CRM, וואטסאפ, טלפוניה, ועוד' },
+            settings: { title: 'הגדרות מכירה', subtitle: 'תצורה, הרשאות, וכללים' },
+        };
+
+        const fmt = (n) => (typeof n === 'number') ? n.toLocaleString('he-IL') : '-';
+        const fmtCur = (n) => '₪ ' + fmt(n);
+        const fmtPct = (n) => typeof n === 'number' ? n.toFixed(1) + '%' : '-';
+        const trend = (n) => {
+            if (n === 0 || n === null) return '<span class="kpi-trend flat">―</span>';
+            const sign = n > 0 ? '+' : '';
+            const cls = n > 0 ? 'up' : 'down';
+            const arrow = n > 0 ? '▲' : '▼';
+            return `<span class="kpi-trend ${cls}">${arrow} ${sign}${n}%</span>`;
+        };
+
+        const TABS_SA = {};
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+            document.getElementById('pageTitle').textContent = TAB_META[tabName].title;
+            document.getElementById('pageSubtitle').textContent = TAB_META[tabName].subtitle;
+            const content = document.getElementById('content');
+            const renderer = TABS_SA[tabName];
+            content.innerHTML = renderer ? renderer() : '<div class="placeholder-zone"><div class="ph-icon">🚧</div><div class="ph-title">בבנייה</div></div>';
+            if (TABS_SA[tabName + '_after']) TABS_SA[tabName + '_after']();
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('content').scrollTo(0, 0);
+        }
+        document.querySelectorAll('.nav-tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+    </script>
+    <script src="sales-agent-state.js"></script>
+    <script src="sales-agent-tabs.js"></script>
+    <script>switchTab('dashboard');</script>
+</body>
+</html>
+
+
