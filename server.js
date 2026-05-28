@@ -39,24 +39,70 @@ for (const v of REQUIRED_ENV) {
     }
 }
 
-// iCount API credentials (optional - only needed if using iCount tools)
-const ICOUNT_CID = process.env.ICOUNT_CID || '';
-const ICOUNT_TOKEN = process.env.ICOUNT_TOKEN || '';
+// iCount API credentials - 2-tier lookup:
+// 1. env vars (ICOUNT_CID, ICOUNT_TOKEN) - if set, use them
+// 2. Fallback: search Drive for .icount_credentials.json (same file Cowork uses)
 const ICOUNT_BASE_URL = 'https://api.icount.co.il/api/v3.php';
+let _icountCredsCache = null; // memory cache after first lookup
+
+async function getICountCredentials() {
+    // Tier 1: env vars (highest priority)
+    if (process.env.ICOUNT_CID && process.env.ICOUNT_TOKEN) {
+        return {
+            cid: process.env.ICOUNT_CID,
+            api_token: process.env.ICOUNT_TOKEN,
+            source: 'env',
+        };
+    }
+
+    // Tier 2: cached from previous Drive lookup
+    if (_icountCredsCache) {
+        return _icountCredsCache;
+    }
+
+    // Tier 3: search Drive for .icount_credentials.json
+    try {
+        const tokens = loadTokens();
+        if (!tokens) return null;
+        const drive = getDrive();
+        const res = await drive.files.list({
+            q: `name='.icount_credentials.json' and trashed=false`,
+            fields: 'files(id, name)',
+            pageSize: 1,
+        });
+        if (res.data.files.length === 0) return null;
+        const fileId = res.data.files[0].id;
+        const buffer = await downloadFile(fileId);
+        const creds = JSON.parse(buffer.toString('utf8'));
+        if (creds.cid && creds.api_token) {
+            _icountCredsCache = {
+                cid: creds.cid,
+                api_token: creds.api_token,
+                source: 'drive',
+            };
+            console.log('✅ Loaded iCount credentials from Drive');
+            return _icountCredsCache;
+        }
+    } catch (err) {
+        console.warn('Could not load iCount creds from Drive:', err.message);
+    }
+    return null;
+}
 
 // ============================================================
 // iCount API HELPER
 // ============================================================
 async function callICountAPI(endpoint, body = {}) {
-    if (!ICOUNT_CID || !ICOUNT_TOKEN) {
+    const creds = await getICountCredentials();
+    if (!creds) {
         return {
             status: false,
             reason: 'icount_not_configured',
-            error_description: 'iCount API not configured. Set ICOUNT_CID and ICOUNT_TOKEN environment variables.',
+            error_description: 'iCount credentials not found. Either set ICOUNT_CID + ICOUNT_TOKEN env vars, or place .icount_credentials.json in Drive.',
         };
     }
 
-    const fullBody = { cid: ICOUNT_CID, ...body };
+    const fullBody = { cid: creds.cid, ...body };
     const url = ICOUNT_BASE_URL + endpoint;
 
     return new Promise((resolve) => {
@@ -69,7 +115,7 @@ async function callICountAPI(endpoint, body = {}) {
             headers: {
                 'Content-Type': 'application/json',
                 'Content-Length': Buffer.byteLength(data),
-                'Authorization': `Bearer ${ICOUNT_TOKEN}`,
+                'Authorization': `Bearer ${creds.api_token}`,
             },
         };
 
