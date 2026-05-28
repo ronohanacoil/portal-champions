@@ -39,6 +39,59 @@ for (const v of REQUIRED_ENV) {
     }
 }
 
+// iCount API credentials (optional - only needed if using iCount tools)
+const ICOUNT_CID = process.env.ICOUNT_CID || '';
+const ICOUNT_TOKEN = process.env.ICOUNT_TOKEN || '';
+const ICOUNT_BASE_URL = 'https://api.icount.co.il/api/v3.php';
+
+// ============================================================
+// iCount API HELPER
+// ============================================================
+async function callICountAPI(endpoint, body = {}) {
+    if (!ICOUNT_CID || !ICOUNT_TOKEN) {
+        return {
+            status: false,
+            reason: 'icount_not_configured',
+            error_description: 'iCount API not configured. Set ICOUNT_CID and ICOUNT_TOKEN environment variables.',
+        };
+    }
+
+    const fullBody = { cid: ICOUNT_CID, ...body };
+    const url = ICOUNT_BASE_URL + endpoint;
+
+    return new Promise((resolve) => {
+        const data = JSON.stringify(fullBody);
+        const url_obj = new URL(url);
+        const options = {
+            hostname: url_obj.hostname,
+            path: url_obj.pathname + url_obj.search,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data),
+                'Authorization': `Bearer ${ICOUNT_TOKEN}`,
+            },
+        };
+
+        const req = https.request(options, (res) => {
+            let chunks = '';
+            res.on('data', (c) => (chunks += c));
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(chunks));
+                } catch (e) {
+                    resolve({ status: false, reason: 'parse_error', error_description: chunks.slice(0, 200) });
+                }
+            });
+        });
+        req.on('error', (e) => {
+            resolve({ status: false, reason: 'network_error', error_description: e.message });
+        });
+        req.write(data);
+        req.end();
+    });
+}
+
 // ============================================================
 // CLIENTS
 // ============================================================
@@ -310,6 +363,20 @@ const AGENT_TOOLS = [
         },
     },
     {
+        name: 'replace_text_in_xlsx',
+        description:
+            'Find-and-replace text across all sheets of an Excel file while PRESERVING all formatting (colors, fonts, merges, charts, conditional formatting). Uses ExcelJS - NOT SheetJS. Use this for updating company names after copying a template, or any global text replacement in an xlsx. Returns how many cells were updated and sample locations.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                file_id: { type: 'string', description: 'Drive file ID of the xlsx to edit' },
+                old_text: { type: 'string', description: 'Text to find (e.g. "רון אוחנה אחזקות בע״מ")' },
+                new_text: { type: 'string', description: 'Text to replace with (e.g. "אופק גבריאל חסון")' },
+            },
+            required: ['file_id', 'old_text', 'new_text'],
+        },
+    },
+    {
         name: 'reset_yearly_xlsx',
         description:
             'Specialized year-end-setup tool: takes an xlsx file (a copy of last year\'s accounting workbook), clears all invoice data (B-E columns rows 7-58), removes ✅ from sheet names, updates the title from old_year to new_year, and resets all hardcoded numbers in the income/VAT area to empty (formulas are kept and will compute as 0 until data is added). Use this AFTER copying last year\'s xlsx with copy_drive_file.',
@@ -321,6 +388,85 @@ const AGENT_TOOLS = [
                 new_year: { type: 'string', description: 'e.g. "2027"' },
             },
             required: ['file_id', 'old_year', 'new_year'],
+        },
+    },
+    {
+        name: 'icount_create_client',
+        description:
+            'Create a new client in iCount. Returns the new client_id. Use this BEFORE creating an invoice if the client does not already exist. Only client_name is required - the rest are optional.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                client_name: { type: 'string', description: 'Full name of the client (Hebrew or English)' },
+                email: { type: 'string', description: 'Optional email address' },
+                phone: { type: 'string', description: 'Optional phone number' },
+                vat_id: { type: 'string', description: 'Optional VAT/Company ID' },
+            },
+            required: ['client_name'],
+        },
+    },
+    {
+        name: 'icount_search_clients',
+        description:
+            'Search clients in iCount by name or other fields. Returns matching clients with their IDs. Use this to find existing clients before creating duplicates.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                client_name: { type: 'string', description: 'Partial client name to search' },
+            },
+            required: ['client_name'],
+        },
+    },
+    {
+        name: 'icount_create_invrec',
+        description:
+            'Create a "חשבונית מס קבלה" (tax invoice + receipt) in iCount. Combines invoice and receipt in one document. Use this for paid services where you need to issue both at once (e.g., Bit deposit for a meeting).',
+        input_schema: {
+            type: 'object',
+            properties: {
+                client_id: { type: 'number', description: 'iCount client ID (from icount_create_client or icount_search_clients)' },
+                client_name: { type: 'string', description: 'Client name (fallback if no client_id)' },
+                description: { type: 'string', description: 'Item description (e.g. "פיקדון לפגישה")' },
+                amount: { type: 'number', description: 'Total amount including VAT (e.g. 250)' },
+                payment_type: {
+                    type: 'string',
+                    description: 'Payment method code. Common values: "bit", "creditcard", "cash", "check", "transfer", "paybox", "app". For Bit deposits use "bit" or "app".',
+                },
+                payer_name: { type: 'string', description: 'Name of person paying (usually same as client_name)' },
+                notes: { type: 'string', description: 'Optional notes for the document' },
+            },
+            required: ['amount', 'description'],
+        },
+    },
+    {
+        name: 'icount_search_docs',
+        description:
+            'Search for documents in iCount (invoices, receipts, etc.). Useful for finding a specific document to view or cancel. Use specific filters to avoid "too_many_results" - search by client_name + amount is usually narrow enough.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                doctype: { type: 'string', description: 'Document type code: "invrec", "invoice", "receipt", "refund", etc.' },
+                client_name: { type: 'string', description: 'Filter by client name' },
+                client_id: { type: 'number', description: 'Filter by client ID (more precise)' },
+                totalsum: { type: 'number', description: 'Filter by exact total amount (e.g. 250)' },
+                from_date: { type: 'string', description: 'Optional start date YYYY-MM-DD' },
+                to_date: { type: 'string', description: 'Optional end date YYYY-MM-DD' },
+            },
+            required: ['doctype'],
+        },
+    },
+    {
+        name: 'icount_cancel_doc',
+        description:
+            'Cancel an existing iCount document (creates a credit/cancellation). Use this for refunds. Provide doctype + docnum from icount_search_docs results.',
+        input_schema: {
+            type: 'object',
+            properties: {
+                doctype: { type: 'string', description: 'Document type to cancel (e.g. "invrec")' },
+                docnum: { type: 'number', description: 'Document number to cancel' },
+                reason: { type: 'string', description: 'Reason for cancellation (e.g. "החזר פיקדון")' },
+            },
+            required: ['doctype', 'docnum', 'reason'],
         },
     },
     {
@@ -737,6 +883,69 @@ async function executeToolCall(toolName, input) {
                 };
             }
 
+            case 'replace_text_in_xlsx': {
+                // CRITICAL: Use ExcelJS (NOT SheetJS) to preserve all formatting
+                const ExcelJS = require('exceljs');
+                const metadata = await getFileMetadata(input.file_id);
+                const buffer = await downloadFile(input.file_id);
+                const wb = new ExcelJS.Workbook();
+                await wb.xlsx.load(buffer);
+
+                const oldText = String(input.old_text);
+                const newText = String(input.new_text);
+                // Escape regex special chars in old_text
+                const escapedOld = oldText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const findRegex = new RegExp(escapedOld, 'g');
+
+                let replacedCount = 0;
+                const replacedLocations = [];
+
+                for (const sheet of wb.worksheets) {
+                    sheet.eachRow({ includeEmpty: false }, (row) => {
+                        row.eachCell({ includeEmpty: false }, (cell) => {
+                            // Handle string cells
+                            if (typeof cell.value === 'string' && cell.value.includes(oldText)) {
+                                cell.value = cell.value.replace(findRegex, newText);
+                                replacedCount++;
+                                if (replacedLocations.length < 20) {
+                                    replacedLocations.push(`[${sheet.name}] ${cell.address}`);
+                                }
+                            }
+                            // Handle rich text cells (cell.value.richText)
+                            else if (cell.value && typeof cell.value === 'object' && Array.isArray(cell.value.richText)) {
+                                let changed = false;
+                                for (const segment of cell.value.richText) {
+                                    if (segment.text && segment.text.includes(oldText)) {
+                                        segment.text = segment.text.replace(findRegex, newText);
+                                        changed = true;
+                                    }
+                                }
+                                if (changed) {
+                                    replacedCount++;
+                                    if (replacedLocations.length < 20) {
+                                        replacedLocations.push(`[${sheet.name}] ${cell.address} (rich)`);
+                                    }
+                                }
+                            }
+                        });
+                    });
+                }
+
+                const newBuffer = await wb.xlsx.writeBuffer();
+                await uploadFile(
+                    input.file_id,
+                    Buffer.from(newBuffer),
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                );
+
+                return {
+                    success: true,
+                    file_name: metadata.name,
+                    replaced_count: replacedCount,
+                    sample_locations: replacedLocations.slice(0, 10),
+                };
+            }
+
             case 'reset_yearly_xlsx': {
                 // Use ExcelJS to better preserve formatting than SheetJS
                 const ExcelJS = require('exceljs');
@@ -807,6 +1016,194 @@ async function executeToolCall(toolName, input) {
                 };
             }
 
+            case 'icount_create_client': {
+                const body = { client_name: input.client_name };
+                if (input.email) body.email = input.email;
+                if (input.phone) body.phone = input.phone;
+                if (input.vat_id) body.vat_id = input.vat_id;
+
+                const result = await callICountAPI('/client/create', body);
+                if (!result.status) {
+                    return {
+                        success: false,
+                        reason: result.reason,
+                        error: result.error_description || result.error,
+                    };
+                }
+                return {
+                    success: true,
+                    client_id: result.client_id || result.data?.client_id,
+                    client_name: input.client_name,
+                };
+            }
+
+            case 'icount_search_clients': {
+                // Note: iCount's /client/get_list returns ALL clients - we filter locally
+                const result = await callICountAPI('/client/get_list', {});
+                if (!result.status) {
+                    return {
+                        success: false,
+                        reason: result.reason,
+                        error: result.error_description || result.error,
+                    };
+                }
+                let clients = result.clients || {};
+                // Convert dict to array if needed
+                if (typeof clients === 'object' && !Array.isArray(clients)) {
+                    clients = Object.values(clients);
+                }
+                // Filter locally by name (case-insensitive partial match)
+                const searchTerm = (input.client_name || '').toLowerCase();
+                const matches = clients.filter((c) => {
+                    const name = (c.client_name || '').toLowerCase();
+                    const company = (c.company_name || '').toLowerCase();
+                    return name.includes(searchTerm) || company.includes(searchTerm);
+                });
+                return {
+                    success: true,
+                    count: matches.length,
+                    total_clients: clients.length,
+                    clients: matches.slice(0, 10).map((c) => ({
+                        client_id: c.client_id,
+                        client_name: c.client_name,
+                        company_name: c.company_name,
+                        email: c.email,
+                        phone: c.phone,
+                        vat_id: c.vat_id,
+                    })),
+                };
+            }
+
+            case 'icount_create_invrec': {
+                // Build the invrec body - matches iCount's expected schema
+                const body = {
+                    doctype: 'invrec',
+                    lang: 'he',
+                    currency_code: 'ILS',
+                };
+
+                if (input.client_id) body.client_id = input.client_id;
+                if (input.client_name) body.client_name = input.client_name;
+
+                // Single item line (price includes VAT)
+                body.items = [
+                    {
+                        description: input.description,
+                        unitprice_incvat: input.amount,
+                        quantity: 1,
+                    },
+                ];
+
+                // Payment - iCount uses different fields per payment type
+                const paymentType = (input.payment_type || 'bit').toLowerCase();
+                const payerName = input.payer_name || input.client_name || '';
+
+                if (['bit', 'paybox', 'app', 'payment_app'].includes(paymentType)) {
+                    // Payment app (Bit, Paybox)
+                    body.payment_app = {
+                        card_brand: paymentType === 'paybox' ? 'paybox' : 'bit',
+                        total_sum: input.amount,
+                        payer_name: payerName,
+                    };
+                } else if (paymentType === 'cash') {
+                    body.cash = { sum: input.amount };
+                } else if (paymentType === 'check' || paymentType === 'cheque') {
+                    body.cheques = [{ sum: input.amount, paying_name: payerName }];
+                } else if (paymentType === 'creditcard' || paymentType === 'cc') {
+                    body.cc = { sum: input.amount, payer_name: payerName };
+                } else if (paymentType === 'transfer' || paymentType === 'banktransfer') {
+                    body.banktransfer = { sum: input.amount };
+                } else {
+                    // Default fallback - try as payment_app/bit
+                    body.payment_app = {
+                        card_brand: 'bit',
+                        total_sum: input.amount,
+                        payer_name: payerName,
+                    };
+                }
+
+                if (input.notes) body.hwc = input.notes; // iCount notes field
+
+                const result = await callICountAPI('/doc/create', body);
+                if (!result.status) {
+                    return {
+                        success: false,
+                        reason: result.reason,
+                        error: result.error_description || result.error,
+                        details: result.error_details,
+                    };
+                }
+                return {
+                    success: true,
+                    doctype: 'invrec',
+                    docnum: result.docnum,
+                    doc_url: result.doc_url || result.docurl,
+                    pdf_url: result.pdf_url || result.pdf_link,
+                    total: input.amount,
+                };
+            }
+
+            case 'icount_search_docs': {
+                const body = { doctype: input.doctype };
+                if (input.client_id) body.client_id = input.client_id;
+                if (input.client_name) body.client_name = input.client_name;
+                if (input.totalsum !== undefined) body.totalsum = input.totalsum;
+                if (input.from_date) body.from_date = input.from_date;
+                if (input.to_date) body.to_date = input.to_date;
+
+                const result = await callICountAPI('/doc/search', body);
+                if (!result.status) {
+                    return {
+                        success: false,
+                        reason: result.reason,
+                        error: result.error_description || result.error,
+                        results_count: result.results_count,
+                        hint: result.reason === 'too_many_results'
+                            ? 'Add more filters - try client_id (numeric) or totalsum (exact amount)'
+                            : undefined,
+                    };
+                }
+                // iCount returns results_list (not doc_list)
+                const docs = result.results_list || result.doc_list || result.results || [];
+                return {
+                    success: true,
+                    count: docs.length,
+                    results_total: result.results_total,
+                    docs: docs.slice(0, 20).map((d) => ({
+                        docnum: d.docnum,
+                        doctype: d.doctype,
+                        client_name: d.client_name,
+                        client_id: d.client_id,
+                        total: d.total || d.doctotal,
+                        date: d.dateissued || d.docdate,
+                        is_cancelled: d.is_cancelled,
+                        is_cancellation: d.is_cancellation,
+                    })),
+                };
+            }
+
+            case 'icount_cancel_doc': {
+                const result = await callICountAPI('/doc/cancel', {
+                    doctype: input.doctype,
+                    docnum: input.docnum,
+                    reason: input.reason,
+                });
+                if (!result.status) {
+                    return {
+                        success: false,
+                        reason: result.reason,
+                        error: result.error_description || result.error,
+                    };
+                }
+                return {
+                    success: true,
+                    cancelled_docnum: input.docnum,
+                    cancellation_doctype: result.cancellation_doctype,
+                    cancellation_docnum: result.cancellation_docnum,
+                    reason: input.reason,
+                };
+            }
+
             case 'ask_user': {
                 // Special tool - just returns the question for the user to answer
                 return { question: input.question, awaiting_user_response: true };
@@ -860,7 +1257,7 @@ Always think step by step and explain what you're doing to the user.
 # ============================================================
 # QUICK ACTION WORKFLOWS (triggered by buttons in dashboard)
 # ============================================================
-# Ron has 3 quick-action buttons above the chat. When he clicks one, a specific
+# Ron has 4 quick-action buttons above the chat. When he clicks one, a specific
 # trigger message arrives. Recognize the trigger and run the matching workflow.
 # Use ask_user (or just respond with a question) for the data Ron needs to provide.
 
@@ -959,7 +1356,176 @@ Always think step by step and explain what you're doing to the user.
 # 7. Summary: "🔄 השלמתי N חשבוניות שחסרו. עכשיו כל החשבוניות החתומות מסונכרנות עם הגיליון."
 
 # ----------------------------------------------------------
-# CRITICAL RULES (apply to all 3 workflows):
+# QUICK ACTION #4 - 🏦 התאמות בנקים (Bank Reconciliation - rule-based menu)
+# ----------------------------------------------------------
+# Trigger message: "📋 הפעלת פעולה מהירה: התאמות בנקים - עו״ש וכרטיסי אשראי"
+#
+# This is a RULE-BASED MENU that branches into 3 sub-workflows.
+# Unlike the other quick actions, this one starts by SHOWING A MENU first.
+# Every response in this flow MUST end with clear options (rule-based UX).
+#
+# === MAIN MENU ===
+# When the trigger arrives, respond IMMEDIATELY with this menu (no extra explanation):
+#
+# "🏦 **התאמות בנקים - עו״ש וכרטיסי אשראי**
+#
+# מה תרצה לעשות?
+#
+# ┌─────────────────────────────────────────────────┐
+# │ 1️⃣  📁 פתח תיקייה + אקסל                          │
+# │     הקמת לקוח חדש - תיקייה חדשה + אקסל-תבנית-ריקה  │
+# └─────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────┐
+# │ 2️⃣  📥 מלא נתונים                                 │
+# │     סריקה אוטומטית של כל ה-PDFs והזנה לאקסל        │
+# │     (מדלג על קבצים שכבר סומנו ב-✅)                │
+# └─────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────┐
+# │ 3️⃣  🔄 השלמת נתונים                               │
+# │     ממלא רק מה שחסר - לא נוגע במה שכבר באקסל       │
+# └─────────────────────────────────────────────────┘
+#
+# 📌 כתוב **1 / 2 / 3** או את שם הכפתור."
+#
+# Wait for user's reply, then run the matching sub-workflow below.
+#
+# ============================================
+# SUB-WORKFLOW 4A: 📁 פתח תיקייה + אקסל
+# ============================================
+# Triggered when user replies: "1", "פתח", "פתח תיקייה + אקסל", or similar.
+#
+# 1. Ask which client/business with quick options:
+#    "📁 **פתיחת תיקייה + אקסל** — לאיזה עסק/לקוח?
+#
+#    ┌────────────────────────────────────────────┐
+#    │ 1️⃣  רון אוחנה אחזקות בע״מ                   │
+#    │ 2️⃣  רון אוחנה עוסק מורשה                    │
+#    │ 3️⃣  לקוח אחר (תכתוב את השם)                 │
+#    └────────────────────────────────────────────┘
+#
+#    💡 הקידומת 'חשבונאות - ' תיווסף אוטומטית."
+#
+# 2. When user answers, normalize:
+#    - If starts with "חשבונאות - " → use as-is
+#    - Else → prepend "חשבונאות - " to get full folder name
+#
+# 3. Use find_folder("חשבונאות - {client_name}") to find the client folder.
+#    - If found → save folder_id, proceed to step 4
+#    - If not found → ask user: "לא מצאתי. ליצור חדש? (כן/לא)"
+#
+# 4. Check if "התאמות בנקים" subfolder already exists in the client folder:
+#    - list_folder_contents(client_folder_id), look for name="התאמות בנקים"
+#    - If exists AND contains an xlsx → ask: "כבר יש תיקייה והאקסל. לדרוס? (כן/לא/שם חלופי)"
+#    - If exists but empty → use it
+#    - If not exists → create_folder("התאמות בנקים", client_folder_id) → save recon_folder_id
+#
+# 5. Find the template Excel:
+#    - Search: find_folder("התאמות בנקים - תבנית ריקה") in the בע״מ folder (parent of all)
+#    - Inside it, list files, find the .xlsx file
+#    - Save template_file_id
+#    - If not found → tell user: "לא מצאתי את התבנית. בדוק שהיא קיימת ב-'חשבונאות - רון אוחנה אחזקות בע״מ/התאמות בנקים - תבנית ריקה/'"
+#
+# 6. Copy template to the recon folder:
+#    - copy_drive_file(template_file_id, new_name="אקסל_התאמות_בנקים_עו״ש_וכרטיסי_אשראי.xlsx", parent=recon_folder_id)
+#    - Save new_xlsx_id
+#
+# 7. ⭐ CRITICAL: Update company name inside the Excel using replace_text_in_xlsx:
+#    Call: replace_text_in_xlsx(file_id=new_xlsx_id, old_text="רון אוחנה אחזקות בע״מ", new_text="{actual_client_name}")
+#    This tool uses ExcelJS to preserve all formatting (colors, merges, charts).
+#    Expected: 14-16 cells replaced across 15 sheets.
+#    🚨 DO NOT use write_xlsx_row for this - it uses SheetJS which BREAKS formatting.
+#    🚨 DO NOT add text to A2 or any new cell - only replace existing cells.
+#
+# 8. Summary message:
+#    "✅ **הוקם בהצלחה:**
+#    📂 חשבונאות - {client_name}/
+#       └─ 📁 התאמות בנקים/
+#           └─ 📊 אקסל_התאמות_בנקים_עו״ש_וכרטיסי_אשראי.xlsx
+#
+#    🎯 שם החברה באקסל עודכן ל: {client_name}
+#    📋 15 גיליונות מוכנים (תובנות + הוראות + סיכום + 12 חודשים)
+#    💰 יתרת פתיחה ב-J9 של ינואר ממתינה להזנה
+#
+#    מה הלאה?
+#    [📥 מלא נתונים אוטומטית]  [📂 פתח את התיקייה]  [✓ סיים]"
+#
+# ============================================
+# SUB-WORKFLOW 4B: 📥 מלא נתונים
+# ============================================
+# Triggered when user replies: "2", "מלא", "מלא נתונים", or similar.
+#
+# 1. Ask which client (same quick options as 4A step 1).
+#
+# 2. Find folder structure:
+#    - חשבונאות - {client_name}/התאמות בנקים/
+#    - If "התאמות בנקים" doesn't exist → tell user and offer to run 4A first
+#
+# 3. List all PDFs in the התאמות בנקים folder that DON'T start with ✅
+#    Two types of PDFs are expected:
+#    - Bank statement (עו״ש) - filename usually contains "תנועות" or "בנק" or "עו״ש"
+#    - Credit card statement - filename usually contains card number like "2833" or "אשראי"
+#
+# 4. ⚡ DON'T BLOCK on missing files:
+#    - If only bank statement exists → process it alone
+#    - If only credit card exists → process it alone
+#    - If both exist → process both
+#    - If none exist → tell user: "אין PDFs לעבד. תעלה את הקבצים לתיקייה ונמשיך."
+#
+# 5. For each PDF:
+#    a. read_pdf_invoice(file_id) → extract transactions
+#       - For bank statement: parse rows with date, description, amount (זכות/חובה), running balance
+#       - For credit card: parse rows with date, description, amount
+#    b. Show a confirmation table to Ron (batch all transactions in one preview)
+#    c. After Ron confirms:
+#       - Write transactions to the matching Excel sheet (by month)
+#         - Bank transactions go in the עו״ש block (rows 11-35) of each month's sheet
+#         - Credit card transactions go in the כרטיס אשראי 1/2/3 block of each month
+#       - Apply consolidation logic if needed (e.g., merge 20+ Facebook charges into one summary line)
+#    d. rename_file(file_id, "✅ {original_name}")
+#
+# 6. Summary:
+#    "✅ **הזנתי נתונים בהצלחה:**
+#    📥 קבצים שעובדו: {N}
+#    📊 תנועות עו״ש: {bank_count}
+#    💳 תנועות אשראי: {credit_count}
+#    📅 חודשים שעודכנו: {months_list}
+#
+#    כל קובץ שעובד סומן ב-✅ ולא ייעובד שוב.
+#
+#    מה הלאה?
+#    [🔄 השלמת נתונים]  [✓ סיים]"
+#
+# ============================================
+# SUB-WORKFLOW 4C: 🔄 השלמת נתונים
+# ============================================
+# Triggered when user replies: "3", "השלמה", "השלם", "השלמת נתונים", or similar.
+#
+# Same as 4B but ONLY processes files that:
+# - Don't have ✅ prefix in filename
+# - (Implicit) Are new since last fill
+#
+# This is essentially "incremental update" - safe to run multiple times.
+#
+# 1. Ask which client (same as 4A/4B).
+# 2. List PDFs without ✅ prefix.
+# 3. If none → reply: "✅ הכל מסונכרן - אין קבצים חדשים לעבד."
+# 4. If some → process them (same logic as 4B).
+# 5. Summary message focused on what's NEW.
+#
+# ============================================
+# CRITICAL RULES FOR QUICK ACTION #4:
+# ============================================
+# - Every message must end with clear CTAs (rule-based UX).
+# - When user picks a sub-option, IMMEDIATELY start that sub-workflow.
+# - Never ask "?" without giving 2-4 button-like options.
+# - Show confirmation tables before bulk writes.
+# - The ✅ prefix is sacred: a file with ✅ is DONE and skipped.
+# - If user clicks the button mid-conversation, treat as fresh menu.
+
+# ----------------------------------------------------------
+# CRITICAL RULES (apply to all 4 workflows):
 # ----------------------------------------------------------
 # - Always show a confirmation table/list before bulk writes to Excel or bulk rename.
 # - Never assume - if you can't find a folder/file, use ask_user to clarify.

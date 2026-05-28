@@ -1230,8 +1230,11 @@
                     <button class="qa-btn" onclick="qaCompleteMissing()" title="זיהוי חשבוניות שעוד לא סומנו ושיבוצן באקסל">
                         🔄 השלמה
                     </button>
-                    <button class="qa-btn" onclick="qaBankReconciliation()" title="התאמות בנקים - עו״ש וכרטיסי אשראי">
-                        🏦 התאמות בנקים - עו״ש וכרטיסי אשראי
+                    <button class="qa-btn" onclick="qaBankReconciliation()" title="התאמות בנקים - עו״ש וכרטיסי אשראי (תפריט עם 3 אופציות)">
+                        🏦 התאמות בנקים
+                    </button>
+                    <button class="qa-btn" onclick="qaBitDeposit()" title="פיקדון לפגישה - הפק חשבונית מס קבלה או זיכוי (Bit, 250₪) דרך iCount">
+                        💰 פיקדון לפגישה
                     </button>
                 </div>
                 <div class="input-area">
@@ -1673,6 +1676,9 @@
         }
         function qaBankReconciliation() {
             qaSendTrigger('📋 הפעלת פעולה מהירה: התאמות בנקים - עו״ש וכרטיסי אשראי');
+        }
+        function qaBitDeposit() {
+            qaSendTrigger('📋 הפעלת פעולה מהירה: פיקדון לפגישה');
         }
 
         // ============ SEND MESSAGE ============
